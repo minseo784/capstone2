@@ -6,7 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { IslandsModule } from './islands/islands.module';
 import { ProblemModule } from './problem/problem.module';
-
+import { AdminController } from './admin/admin.controller';
 
 @Module({
   imports: [
@@ -19,7 +19,7 @@ import { ProblemModule } from './problem/problem.module';
     IslandsModule,
     ProblemModule
   ],
-  controllers: [AppController],
+  controllers: [AppController, AdminController],
   providers: [AppService],
 })
 export class AppModule {}

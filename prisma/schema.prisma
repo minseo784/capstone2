@@ -34,7 +34,7 @@ model User {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  level      Level    @relation(fields: [levelNum], references: [num])
+  level      Level    @relation(fields: [levelNum], references: [levelNum])
 
   solved     SolvedHistory[]
   submits    SubmitFlag[]
@@ -43,7 +43,7 @@ model User {
 }
 
 model Level {
-  num       Int    @id
+  levelNum       Int    @id
   shipImage String
 
   users     User[]
@@ -63,6 +63,7 @@ model Problem {
   description  String
   hint         String
   correctFlag  String
+  serverLink  String?
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

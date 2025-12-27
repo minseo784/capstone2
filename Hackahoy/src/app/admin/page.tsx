@@ -1,54 +1,57 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./admin.module.css";
+import { listUsers, setUserBanned, AdminUser } from "@/lib/api/admin";
+import axios from "axios";
 
+// API에서 가져오는 유저 타입에 맞게 설정
 type Role = "ADMIN" | "USER";
 
-type Row = {
-  id: string;
-  nickname: string;
-  role: Role;
-  banned: boolean;
-};
-
 const PAGE_SIZE = 3;
-
-const MOCK_USERS: Row[] = [
-  { id: "1", nickname: "ABC", role: "ADMIN", banned: false },
-  { id: "2", nickname: "user1", role: "USER", banned: true },
-  { id: "3", nickname: "user2", role: "USER", banned: false },
-  { id: "4", nickname: "user3", role: "USER", banned: false },
-  { id: "5", nickname: "user4", role: "USER", banned: true },
-  { id: "6", nickname: "user5", role: "USER", banned: false },
-];
 
 export default function AdminPage() {
   const router = useRouter();
 
   const [q, setQ] = useState("");
-  const [rows, setRows] = useState<Row[]>(MOCK_USERS);
+  const [rows, setRows] = useState<AdminUser[]>([]); // 실데이터 저장
+  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
 
-  const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    if (!s) return rows;
-    return rows.filter((r) => r.nickname.toLowerCase().includes(s));
-  }, [q, rows]);
+  // ✅ [데이터 로드] 서버에서 유저 목록 가져오기
+  const fetchUsers = useCallback(async () => {
+    try {
+      setLoading(true);
+      // listUsers API 호출 (검색어 q 전달)
+      const data = await listUsers({ keyword: q });
+      setRows(data);
+    } catch (err) {
+      console.error("유저 목록 로드 실패:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [q]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  // 페이지 진입 및 검색어 변경 시 실행
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  // 클라이언트 사이드 페이징 로직
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
 
   const pageRows = useMemo(() => {
     const start = (safePage - 1) * PAGE_SIZE;
-    return filtered.slice(start, start + PAGE_SIZE);
-  }, [filtered, safePage]);
+    return rows.slice(start, start + PAGE_SIZE);
+  }, [rows, safePage]);
 
   const goPrev = () => setPage((p) => Math.max(1, p - 1));
   const goNext = () => setPage((p) => Math.min(totalPages, p + 1));
 
+  // ✅ [권한 변경] (필요 시 API 추가 구현 가능, 현재는 로컬 상태 변경 예시)
   const toggleRole = (id: string) => {
     setRows((prev) =>
       prev.map((r) =>
@@ -57,15 +60,34 @@ export default function AdminPage() {
     );
   };
 
-  const toggleBanned = (id: string) => {
-    setRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, banned: !r.banned } : r))
-    );
-  };
+  // API를 직접 호출 X
+  const handleToggleBanned = (userId: string, currentBanned: boolean) => {
+  // ❌ API 호출(setUserBanned) 코드를 여기서 지웁니다.
+  
+  // ✅ 로컬 상태만 업데이트 (체크 표시만 뗐다 붙였다 함)
+  setRows((prev) =>
+    prev.map((u) => (u.id === userId ? { ...u, banned: !currentBanned } : u))
+  );
+};
 
-  const onSave = () => {
-    console.log("[ADMIN SAVE]", rows);
-    alert("저장(데모): 콘솔에서 rows 확인");
+  const onSave = async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      
+      // ✅ 모든 유저의 변경 사항(권한, 차단 여부)을 한꺼번에 전송
+      await axios.post(
+        "http://localhost:4000/admin/users/batch-update",
+        { users: rows }, // rows 배열 전체를 보냄
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      alert("변경 사항이 성공적으로 저장되었습니다! 💾");
+    } catch (err) {
+      console.error("저장 실패:", err);
+      alert("서버에 저장하는 중 오류가 발생했습니다. 백엔드 엔드포인트를 확인하세요.");
+    }
   };
 
   return (
@@ -93,34 +115,43 @@ export default function AdminPage() {
           <div className={styles.cell}>banned</div>
         </div>
 
-        {pageRows.map((r) => (
-          <div key={r.id} className={styles.row}>
-            <div className={styles.cell}>{r.nickname}</div>
-
-            <div className={styles.cell}>
-              <button
-                type="button"
-                className={styles.roleBtn}
-                onClick={() => toggleRole(r.id)}
-              >
-                {r.role === "ADMIN" ? "Admin" : "User"} <span>↕</span>
-              </button>
-            </div>
-
-            <div className={styles.cell}>
-              <button
-                type="button"
-                className={styles.banBox}
-                onClick={() => toggleBanned(r.id)}
-                aria-label={`toggle ban ${r.nickname}`}
-              >
-                {r.banned ? <span className={styles.check}>✓</span> : null}
-              </button>
+        {loading ? (
+          <div className={styles.row}>
+            <div className={styles.cell} style={{ width: "100%", textAlign: "center" }}>
+              Loading...
             </div>
           </div>
-        ))}
+        ) : (
+          pageRows.map((r) => (
+            <div key={r.id} className={styles.row}>
+              <div className={styles.cell}>{r.nickname}</div>
+                <div className={styles.cell}>
+                  <button
+                    type="button"
+                    className={styles.roleBtn}
+                    onClick={() => toggleRole(r.id)}
+                  >
+                    {/* ✅ role이 'ADMIN'이면 "Admin", 아니면 "User" 표시 */}
+                    {r.role === "ADMIN" ? "Admin" : "User"} <span>↕</span>
+                  </button>
+                </div>
+                <div className={styles.cell}>
+                    <button
+                      type="button"
+                      className={styles.banBox}
+                      onClick={() => handleToggleBanned(r.id, r.banned)}
+                      aria-label={`toggle ban ${r.nickname}`}
+                    >
+                      {/* ✅ r.banned가 true일 때만 체크 표시(✓) 렌더링 */}
+                      {r.banned ? <span className={styles.check}>✓</span> : null}
+                    </button>
+                  </div>
+            </div>
+          ))
+        )}
 
-        {Array.from({ length: PAGE_SIZE - pageRows.length }).map((_, i) => (
+        {/* 빈 행 채우기 */}
+        {!loading && Array.from({ length: PAGE_SIZE - pageRows.length }).map((_, i) => (
           <div key={`empty-${i}`} className={styles.row}>
             <div className={styles.cell}>&nbsp;</div>
             <div className={styles.cell}>&nbsp;</div>
@@ -130,7 +161,6 @@ export default function AdminPage() {
       </div>
 
       <div className={styles.footer}>
-        // (AdminPage 내) CREATE 버튼 onClick만 수정
         <button
           type="button"
           className={styles.createBtn}
@@ -144,13 +174,13 @@ export default function AdminPage() {
             priority
           />
         </button>
+        
         <div className={styles.pager}>
           <button
             type="button"
             className={`${styles.pagerIconBtn} ${styles.pagerLeft}`}
             onClick={goPrev}
             disabled={safePage <= 1}
-            aria-label="prev"
           />
           <div className={styles.pageText}>
             {safePage} / {totalPages}
@@ -160,9 +190,9 @@ export default function AdminPage() {
             className={`${styles.pagerIconBtn} ${styles.pagerRight}`}
             onClick={goNext}
             disabled={safePage >= totalPages}
-            aria-label="next"
           />
         </div>
+
         <button type="button" className={styles.saveBtn} onClick={onSave}>
           <Image
             src="/assets/ui/save.png"

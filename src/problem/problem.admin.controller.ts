@@ -1,8 +1,9 @@
 import { Body, Controller, Post, UseGuards, Get } from '@nestjs/common';
-import { DevUserGuard } from '../auth/dev-user.guard';
 import { ProblemService } from './problem.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'; // 경로 확인 필요
+import { AdminGuard } from '../auth/guards/admin.guard';   // 아까 만든 가드
 
-@UseGuards(DevUserGuard)
+@UseGuards(JwtAuthGuard, AdminGuard) // ✅ 진짜 보안 적용
 @Controller('admin')
 export class ProblemAdminController {
   constructor(private readonly problemService: ProblemService) {}

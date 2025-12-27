@@ -5,11 +5,12 @@ import { useAuth } from "@/components/common/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import styles from "./Mypage.module.css";
+import axios from "axios";
 
 type UserShape = {
   userId?: string;
   nickname?: string;
-  level?: number;
+  levelNum?: number;
   oauthProvider?: string;
   email?: string;
 };
@@ -20,6 +21,14 @@ export default function MyPage() {
 
   const safeUser = useMemo(() => (user as UserShape) ?? {}, [user]);
   const [nickname, setNickname] = useState("");
+  const level = safeUser.levelNum ?? 1;
+
+  const shipImgSrc = useMemo(() => {
+    // 만약 배 이미지가 5번까지만 있다면 Math.min(level, 5)를 사용하세요.
+    // 여기서는 말씀하신 대로 level 숫자를 그대로 파일명에 꽂습니다.
+    const shipNumber = level > 0 ? level : 1; 
+    return `/assets/ships/ship-${shipNumber}.png`;
+  }, [level]);
 
   useEffect(() => {
     if (!user) return;
@@ -36,17 +45,36 @@ export default function MyPage() {
     return <main className={styles.pageRoot} />;
   }
 
-  const level = safeUser.level ?? 1;
   const provider = (safeUser.oauthProvider ?? "kakao").toUpperCase();
   const email = safeUser.email ?? "";
+
+  
 
   const handleLogout = () => {
     logout(); // logout은 async가 아니므로 await 제거
     router.push("/");
   };
 
-  const handleSave = () => {
-    alert("데모: 닉네임 저장 (백엔드 연동 전)");
+  const handleSave = async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) return alert("로그인이 필요합니다.");
+
+      await axios.post(
+        "http://localhost:4000/auth/update-nickname",
+        { nickname: nickname }, // 현재 input에 입력된 nickname 상태값
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      alert("닉네임이 성공적으로 변경되었습니다! 새로고침 시 반영됩니다.");
+      // 좀 더 완벽하게 하려면 여기서 window.location.reload()를 해주거나
+      // AuthContext의 user 상태를 업데이트하면 좋습니다.
+    } catch (error) {
+      console.error("닉네임 수정 실패:", error);
+      alert("닉네임 수정 중 오류가 발생했습니다.");
+    }
   };
 
   const handleUnsubscribe = () => {
@@ -67,11 +95,17 @@ export default function MyPage() {
           <section className={styles.leftPanel}>
             <div className={styles.avatarWrapper}>
               <Image
-                src="/assets/ships/ship-1.png"
-                alt="ship"
+                src={shipImgSrc}
+                alt={`Level ${level} ship`}
                 width={88}
                 height={88}
-              />
+                priority
+                onError={(e) => {
+                  // 혹시 해당 레벨의 이미지가 없을 경우 기본 이미지로 대체
+                  const target = e.target as HTMLImageElement;
+                  target.src = "/assets/ships/ship-1.png";
+                }}
+                />
             </div>
 
             <p className={styles.shipName}>{nickname}</p>

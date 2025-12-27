@@ -1,101 +1,162 @@
 // src/app/(user)/challenge/[id]/page.tsx
 "use client";
 
-
-
 import Image from "next/image";
 import { useParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "./challenge.module.css";
-import {
-  loadStore,
-  findProblemByIslandId,
-  type IslandRecord,
-} from "@/lib/islandStore";
+import { getProblem, submitFlag } from "@/lib/api/islands";
+import { useAuth } from "@/components/common/AuthContext";
+import { useRouter } from "next/navigation";
 
 type HintData = { img: string; text: string };
 
+type Problem = {
+  id: number;
+  title: string;
+  description: string;
+  hint: string | null;
+  serverLink: string;
+  islandId: number;
+};
+
 export default function ChallengePage() {
-
-  console.log('API BASE:', process.env.NEXT_PUBLIC_API_BASE_URL);
-
   const { id } = useParams<{ id: string }>();
-
   const [flagInput, setFlagInput] = useState("");
   const [hintOpen, setHintOpen] = useState(false);
-  const [dynamic, setDynamic] = useState<IslandRecord | null>(null);
+  const [problem, setProblem] = useState<Problem | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const { user, refreshUser } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken'); // 일단 이 키로 가정
-    console.log('FRONT TOKEN:', token);
+    if (!id) return;
 
-    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/me`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-      .then(async (res) => {
-        const data = await res.json().catch(() => ({}));
-        console.log('ME STATUS:', res.status, data);
-      })
-      .catch((err) => {
-        console.error('ME FETCH ERROR:', err);
-      });
-  }, []);
+    async function fetchProblem() {
+      try {
+        const problemId = Number(id);
+        // ✅ 다시 getProblem으로 원복 (숫자 2가 문제 ID이므로)
+        const response = await getProblem(problemId);
+        
+        console.log(`🔍 Problem ${problemId} API 응답 데이터:`, response);
 
+        /**
+         * ❗ 중요: API 응답이 어떤 형태든 '객체' 하나를 뽑아내는 로직
+         * 1. response 자체가 문제 객체인 경우
+         * 2. response.data 가 문제 객체인 경우 (axios 설정에 따라 다름)
+         * 3. [ { ... } ] 처럼 배열로 오는 경우
+         */
+        let data = response;
+        if (data && data.data) data = data.data; // nestjs/axios 구조 대응
+        if (Array.isArray(data)) data = data[0]; // 배열 대응
 
-  // ✅ pin1 고정 문제 (절대 유지)
-  const BG_BY_CHALLENGE: Record<string, string> = {
-    "101": "/assets/backgrounds/island-1.png",
-    "102": "/assets/backgrounds/island-2.png",
-    "103": "/assets/backgrounds/island-3.png",
-  };
-
-  // ✅ pin1 힌트 (절대 유지)
-  const HINT_BY_CHALLENGE: Record<string, HintData> = {
-    "101": { img: "/assets/icons/hint-1.png", text: "힌트 : ..." },
-    "102": { img: "/assets/icons/hint-2.png", text: "힌트 : ..." },
-    "103": { img: "/assets/icons/hint-3.png", text: "힌트 : ..." },
-  };
-
-  // ✅ 동적 문제(pin-2-1 같은)는 store에서 읽기
-  useEffect(() => {
-    if (BG_BY_CHALLENGE[id]) {
-      setDynamic(null);
-      return;
+        if (data && (data.title || data.id)) {
+          setProblem(data);
+          console.log("🎯 최종 세팅된 문제 데이터:", data);
+        } else {
+          console.error("❌ 데이터를 가져왔으나 구조가 올바르지 않습니다.");
+          setProblem(null);
+        }
+      } catch (error) {
+        console.error('❌ 문제 로드 중 서버 에러:', error);
+        setProblem(null);
+      } finally {
+        setLoading(false);
+      }
     }
-    const store = loadStore();
-    setDynamic(findProblemByIslandId(store, id));
+
+    fetchProblem();
   }, [id]);
 
-  // ✅ 배경 결정
-  // - 101~103: 기존 배경 유지
-  // - 동적: default-island.png 사용
-  const bg = useMemo(() => {
-    if (BG_BY_CHALLENGE[id]) return BG_BY_CHALLENGE[id];
-    return "/assets/backgrounds/default-island.png";
-  }, [id]);
-
-  // ✅ 고정 문제는 기존 hint, 동적은(일단) hint 없음
-  const hint = HINT_BY_CHALLENGE[id]; // 동적힌트는 추후 확장 가능
-  const okImg = "/assets/ui/ok.png";
-
-  // ✅ admin에서 저장된 값 표시
-  const title = dynamic ? dynamic.title : `[challenge ${id}]`;
-  const desc = dynamic ? dynamic.description : "시나리오 입니다.";
-  const serverUrl = dynamic ? dynamic.serverUrl : "https://example.com";
-
-  const onSubmit = (e: React.FormEvent) => {
+  // ✅ 플래그 제출
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!problem) return;
+    if (submitting) return;
 
-    // 동적 문제는 flag 검증
-    if (dynamic) {
-      const ok = flagInput.trim() === dynamic.flag.trim();
-      alert(ok ? "정답입니다!" : "오답입니다.");
-      return;
+    setSubmitting(true);
+    try {
+      const result = await submitFlag(problem.id, flagInput.trim());
+
+      if (result.correct) {
+        if (result.alreadySolved) {
+          alert("이미 해결한 문제입니다! ✅");
+          setSubmitting(false);
+          return;
+        }
+
+        // 1️⃣ 레벨업 판단을 위해 현재 유저 레벨 저장
+        const prevLevel = user?.levelNum ?? 1;
+        const newLevel = result.newLevel;
+
+        // 2️⃣ 최신 정보로 유저 상태 갱신 (상단바 등을 위해)
+        await refreshUser();
+
+        // 3️⃣ 레벨이 올랐다면 레벨업 페이지로 이동
+        if (newLevel > prevLevel) {
+          // 팀원이 정한 규격에 맞춰 쿼리 스트링 생성
+          const prevShip = encodeURIComponent(`/assets/ships/ship-${prevLevel}.png`);
+          const newShip = encodeURIComponent(`/assets/ships/ship-${newLevel}.png`);
+          const redirect = encodeURIComponent(`/`); // 컨티뉴 버튼 누르면 홈으로
+
+          router.push(`/level-up?prevShip=${prevShip}&newShip=${newShip}&redirect=${redirect}`);
+        } else {
+          // 레벨업은 아니지만 정답인 경우
+          alert("정답입니다! 🎉");
+          setFlagInput("");
+        }
+      } else {
+        alert("틀렸습니다. 다시 생각해보세요! ❌");
+      }
+    } catch (err) {
+      console.error("제출 에러:", err);
+      alert("서버 통신 중 오류가 발생했습니다.");
+    } finally {
+      setSubmitting(false);
     }
-
-    // 고정 문제는 아직 데모
-    alert("데모: 고정 문제(101~103)는 아직 정답 로직 연결 전입니다.");
   };
+
+  // ✅ 로딩 중
+if (loading) {
+    return (
+      <main className={styles.pageRoot}>
+        <div className={styles.statusText}>🎯 문제를 불러오는 중...</div>
+      </main>
+    );
+  }
+
+  // ✅ 데이터 없음 (이제 데이터가 확실히 null일 때만 뜸)
+  if (!problem || !problem.title) {
+    return (
+      <main className={styles.pageRoot}>
+        <div className={styles.statusText}>❌ 문제가 아직 생성되지 않았습니다.</div>
+      </main>
+    );
+  }
+
+  const getBackgroundImage = (islandId: number) => {
+    // Pin 1 (Island 1)에 속한 경우 고유 배경 사용
+    if (islandId === 1) {
+      // 문제 id나 다른 규칙이 있다면 추가 분기 가능
+      // 여기서는 예시로 문제 ID가 1, 2, 3인 경우 각각 island-1, 2, 3 매칭
+      if (problem.id <= 3) {
+        return `/assets/backgrounds/island-${problem.id}.png`;
+      }
+      // Island 1의 다른 문제라면 기본 island-1 사용
+      return `/assets/backgrounds/island-1.png`;
+    }
+    
+    // Pin 2, 3 등 새로 생성된 섬은 무조건 디폴트 배경
+    return "/assets/backgrounds/default-island.png";
+  };
+
+  const bg = getBackgroundImage(problem.islandId);
+
+  // 2. 힌트 및 기타 설정
+  const hint: HintData | null = problem.hint 
+    ? { img: "/assets/icons/hint-1.png", text: problem.hint } 
+    : null;
 
   return (
     <main className={styles.pageRoot}>
@@ -104,15 +165,17 @@ export default function ChallengePage() {
       <section className={styles.stage}>
         <div className={styles.boardWrap}>
           <div className={styles.board}>
-            <h1 className={styles.title}>{title}</h1>
-            <p className={styles.desc}>{desc}</p>
+            <h1 className={styles.title}>{problem.title}</h1>
+            <p className={styles.desc}>{problem.description}</p>
 
-            <p className={styles.link}>
-              Server link:&nbsp;
-              <a href={serverUrl} target="_blank" rel="noreferrer">
-                {serverUrl}
-              </a>
-            </p>
+            {problem.serverLink && (
+              <p className={styles.link}>
+                Server link:&nbsp;
+                <a href={problem.serverLink} target="_blank" rel="noreferrer">
+                  {problem.serverLink}
+                </a>
+              </p>
+            )}
 
             <form className={styles.formRow} onSubmit={onSubmit}>
               <input
@@ -120,8 +183,13 @@ export default function ChallengePage() {
                 value={flagInput}
                 onChange={(e) => setFlagInput(e.target.value)}
                 placeholder="flag{enter_your_flag}"
+                disabled={submitting}
               />
-              <button type="submit" className={styles.flagBtn}>
+              <button 
+                type="submit" 
+                className={styles.flagBtn}
+                disabled={submitting}
+              >
                 <Image
                   src="/assets/ui/flag.png"
                   alt="flag"
@@ -130,6 +198,12 @@ export default function ChallengePage() {
                 />
               </button>
             </form>
+
+            {submitting && (
+              <p style={{ color: "yellow", marginTop: "10px" }}>
+                제출 중...
+              </p>
+            )}
           </div>
 
           {hint && (

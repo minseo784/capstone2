@@ -23,14 +23,14 @@ export class ProblemController {
 }
   */
 import { Body, Controller, Param, Post, Req, UseGuards, Get, ParseIntPipe } from '@nestjs/common';
-import { DevUserGuard } from '../auth/dev-user.guard';
 import { ProblemService } from './problem.service';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @Controller('problems')
 export class ProblemController {
   constructor(private readonly problemService: ProblemService) {}
 
-  @UseGuards(DevUserGuard)
+  @UseGuards(JwtAuthGuard)
   @Post(':id/submit')
   async submit(
     @Param('id') id: string,
@@ -44,7 +44,7 @@ export class ProblemController {
     });
   }
 
-  @UseGuards(DevUserGuard)
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
   async getProblem(@Param('id', ParseIntPipe) id: string) {
     return this.problemService.getProblem(Number(id));
@@ -61,7 +61,7 @@ export class AdminProblemController {
   }
 }
 
-@UseGuards(DevUserGuard)
+@UseGuards(JwtAuthGuard)
 @Controller('admin')
 export class ProblemAdminController {
   constructor(private readonly problemService: ProblemService) {}

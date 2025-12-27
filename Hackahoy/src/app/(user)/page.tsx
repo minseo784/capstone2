@@ -1,4 +1,4 @@
-// src/app/page.tsx
+// src/app/(user)/page.tsx
 import MapView from "@/components/map/MapView";
 
 export default function HomePage() {

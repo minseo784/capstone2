@@ -127,11 +127,11 @@ export default function AdminUsersPage() {
           className={styles.backAdminBtn}
           onClick={() => router.push("/admin")}
         >
-          <Image src="/assets/ui/back.png" alt="BACK" width={86} height={46} />
+          <Image src="/assets/ui/back.png" alt="BACK" width={86} height={46} priority/>
         </button>
 
         <button className={styles.saveBtn} onClick={onSave}>
-          <Image src="/assets/ui/save.png" alt="SAVE" width={92} height={48} />
+          <Image src="/assets/ui/save.png" alt="SAVE" width={92} height={48} priority/>
         </button>
       </div>
     </section>

@@ -61,7 +61,7 @@ function renderBtn(btn: NavButton, idx: number) {
       aria-label={meta.label}
     >
       {meta.img ? (
-        <Image src={meta.img} alt={meta.label} width={meta.w} height={meta.h} />
+        <Image src={meta.img} alt={meta.label} width={meta.w} height={meta.h} priority={meta.priority} />
       ) : (
         <span className={styles.text}>{meta.label}</span>
       )}
@@ -87,7 +87,7 @@ function MyPageBadge({
       aria-label="My Page"
     >
       <span className={styles.badgeText}>
-        {user?.nickname ?? "PLAYER"} [level {user?.level ?? 1}]
+        {user?.nickname ?? "PLAYER"} [level {user?.levelNum ?? 1}]
       </span>
     </button>
   );
@@ -98,18 +98,19 @@ function getMeta(type: NavButtonType): {
   img?: string;
   w: number;
   h: number;
+  priority?: boolean;
 } {
   switch (type) {
     case "home":
-      return { label: "HOME", img: "/assets/ui/home.png", w: 96, h: 42 };
+      return { label: "HOME", img: "/assets/ui/home.png", w: 96, h: 42, priority: true };
     case "logout":
-      return { label: "LOGOUT", img: "/assets/ui/logout.png", w: 140, h: 46 };
+      return { label: "LOGOUT", img: "/assets/ui/logout.png", w: 140, h: 46, priority: true };
     case "back":
-      return { label: "BACK", img: "/assets/ui/back.png", w: 96, h: 42 };
+      return { label: "BACK", img: "/assets/ui/back.png", w: 96, h: 42, priority: true };
     case "login":
-      return { label: "LOGIN", img: "/assets/ui/login.png", w: 140, h: 42 };
+      return { label: "LOGIN", img: "/assets/ui/login.png", w: 140, h: 42, priority: true };
     case "admin":
-      return { label: "ADMIN", img: "/assets/ui/admin.png", w: 140, h: 42 };
+      return { label: "ADMIN", img: "/assets/ui/admin.png", w: 140, h: 42, priority: true };
     case "mypage":
       return { label: "MYPAGE", w: 0, h: 0 };
     default:

@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 export class ProblemService {
   constructor(private readonly prisma: PrismaService) {}
 
+
   async submitFlag(params: { problemId: number; userId: string; flag: string }) {
     const { problemId, userId, flag } = params;
 
@@ -35,20 +36,45 @@ export class ProblemService {
     });
     if (already) return { correct: true, alreadySolved: true };
 
-    // 3) solved 기록
+
+    // 3) solved 기록 추가
     await this.prisma.solvedHistory.create({
       data: { userId, problemId },
     });
 
-    // 4) 맞추면 레벨 +1 (정책)
+    // 4) ⭐ [수정] 경험치 기반 레벨 시스템
+    // 먼저 유저가 지금까지 총 몇 문제를 풀었는지 가져옵니다.
+    const totalSolvedCount = await this.prisma.solvedHistory.count({
+      where: { userId },
+    });
+
+    /**
+     * 레벨 계산 로직 (누적 문제 수 기준):
+     * 1렙 -> 0문제
+     * 2렙 -> 1문제 (누적 1)
+     * 3렙 -> 2문제 더 (누적 3)
+     * 4렙 -> 4문제 더 (누적 7)
+     * 5렙 -> 8문제 더 (누적 15)
+     * 공식: 누적 문제 수가 (2^(level-1) - 1) 이상이면 해당 레벨
+     */
+    let newLevel = 1;
+    while (totalSolvedCount >= Math.pow(2, newLevel) - 1) {
+      newLevel++;
+    }
+    console.log("업데이트 시도 유저 ID:", userId); // 이 ID가 유저 테이블에 실제로 있는지 확인
+
+    // 계산된 레벨로 유저 정보 업데이트
     const updated = await this.prisma.user.update({
-      where: { id: userId },
-      data: { levelNum: { increment: 1 } },
+      where: { id: userId }, // 만약 PK가 id가 아니라 email이면 { email: userId }로 수정
+      data: { levelNum: newLevel },
       select: { levelNum: true },
     });
 
+    console.log("DB 업데이트 결과:", updated);
+    
     return { correct: true, alreadySolved: false, newLevel: updated.levelNum };
   }
+
   async getProblem(problemId: number) {
     return this.prisma.problem.findUnique({
       where: { id: problemId },
@@ -58,6 +84,7 @@ export class ProblemService {
         title: true,
         description: true,
         hint: true,
+        serverLink: true,
         createdAt: true,
         updatedAt: true,
         // correctFlag는 절대 내려주면 안됨

@@ -12,6 +12,8 @@ import {
   STORE_KEY,
   type IslandsStore,
 } from "@/lib/islandStore";
+import { getIslands } from "@/lib/api/islands";
+import type { Island } from "@/domain/types/Island";
 
 export default function MapView() {
   const { login, user, loginModalOpen, closeLoginModal, openLoginModal } =
@@ -28,6 +30,37 @@ export default function MapView() {
 
   // ✅ store는 먼저 선언되어야 함
   const [store, setStore] = useState<IslandsStore>({});
+
+  // ✅ 백엔드에서 섬 데이터 가져오기
+  const [islands, setIslands] = useState<Island[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // ✅ 1. 현재 레벨 (levelNum) 가져오기
+  const currentLevel = user?.levelNum ?? 1;
+
+  // ✅ 2. 레벨에 따라 ship-1, ship-2, ship-3... 이미지 매칭
+  const shipImgSrc = useMemo(() => {
+    // 혹시 이미지가 없는 레벨을 대비해 1~3 정도로 제한하거나 숫자를 그대로 씁니다.
+    const shipNumber = currentLevel > 0 ? currentLevel : 1;
+    return `/assets/ships/ship-${shipNumber}.png`;
+  }, [currentLevel]);
+
+  // ✅ API에서 섬 데이터 로드
+  useEffect(() => {
+    async function fetchIslands() {
+      try {
+        const data = await getIslands();
+        setIslands(data);
+        console.log('✅ Islands loaded from API:', data);
+      } catch (error) {
+        console.error('❌ Failed to fetch islands:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchIslands();
+  }, []);
 
   // ✅ 최초 로드 + (선택) storage 이벤트로 갱신
   useEffect(() => {
@@ -167,76 +200,9 @@ export default function MapView() {
   /* ------------------------------------
    *  Kakao 로그인
    * ----------------------------------*/
-  /*
-  async function handleKakaoLogin() {
-    if (!kakaoReady) {
-      alert(
-        "카카오 SDK가 아직 준비되지 않았습니다. 잠시 후 다시 시도해주세요."
-      );
-      return;
-    }
-
-    const w = window as any;
-    const Kakao = w.Kakao;
-
-    if (!Kakao) {
-      alert(
-        "카카오 SDK가 로드되지 않았습니다. 새로고침 후 다시 시도해 주세요."
-      );
-      return;
-    }
-
-    if (!Kakao.Auth || typeof Kakao.Auth.login !== "function") {
-      alert("카카오 로그인 기능을 사용할 수 없습니다.");
-      return;
-    }
-
-    Kakao.Auth.login({
-      scope: "profile_nickname account_email",
-      success: async (authObj: any) => {
-        try {
-          const accessToken = authObj.access_token;
-          console.log("Kakao accessToken:", accessToken);
-
-          Kakao.API.request({
-            url: "/v2/user/me",
-            success: (res: any) => {
-              const nickname = res.properties?.nickname;
-              const email = res.kakao_account?.email;
-
-              const fakeUser = {
-                userId: "u_dev",
-                nickname: nickname ?? "예빈",
-                level: 1,
-                role: "USER" as const,
-                oauthProvider: "kakao" as const,
-                email: email ?? "unknown@kakao.com",
-              };
-
-              const fakeToken = "dev-jwt-token-kakao";
-              login(fakeToken, fakeUser);
-            },
-            fail: (error: any) => {
-              console.error("Kakao user info error:", error);
-              alert("사용자 정보 조회 실패");
-            },
-          });
-        } catch (e) {
-          console.error(e);
-          alert("로그인 중 오류가 발생했습니다.");
-        }
-      },
-      fail(err: any) {
-        console.error(err);
-        alert("카카오 로그인 실패 또는 취소");
-      },
-    });
-  }
-    */
   function handleKakaoLogin() {
     window.location.href = "http://localhost:4000/auth/kakao";
   }
-
 
   /* ------------------------------------
    *  Naver 로그인
@@ -292,10 +258,27 @@ export default function MapView() {
         backgroundSize: "80% auto",
       }}
     >
+      {/* 로딩 중 */}
+      {loading && (
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          color: 'white',
+          fontSize: '24px',
+          fontWeight: 'bold',
+          textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
+          zIndex: 100,
+        }}>
+          🏝️ 섬을 불러오는 중...
+        </div>
+      )}
+
       {/* 중앙 배 */}
       <Image
-        src="/assets/ships/ship-1.png"
-        alt="Ship"
+        src={shipImgSrc}
+        alt={`Level ${currentLevel} Ship`}
         width={240}
         height={220}
         style={{
@@ -308,8 +291,12 @@ export default function MapView() {
         priority
       />
 
-      {/* ✅ 생성된 핀만 클릭 가능 */}
-      <CreateSlotsLayer mode="play" occupiedPins={occupiedPins} />
+      {/* ✅ 생성된 핀만 클릭 가능 + 백엔드 islands 전달 */}
+      <CreateSlotsLayer 
+        mode="play" 
+        occupiedPins={occupiedPins}
+        islands={islands}
+      />
 
       {/* 로그인 모달 */}
       {loginModalOpen && !isLoggedIn && (

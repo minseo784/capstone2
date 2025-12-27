@@ -6,12 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import styles from "./island.module.css";
 import { useAuth } from "@/components/common/AuthContext";
-import {
-  loadStore,
-  getProblemsByPin,
-  type IslandsStore,
-  type PinId,
-} from "@/lib/islandStore";
+import { getIslandProblems } from "@/lib/api/islands";
 
 type FixedIslandItem = {
   id: string;
@@ -22,9 +17,17 @@ type FixedIslandItem = {
   h: number;
 };
 
+type Problem = {
+  id: number;
+  title: string;
+  description: string;
+  hint: string | null;
+  solved: boolean;
+};
+
 const FIXED_PIN1_ISLANDS: FixedIslandItem[] = [
   {
-    id: "101",
+    id: "1",
     img: "/assets/islands/island-1.png",
     x: 18,
     y: 72,
@@ -32,7 +35,7 @@ const FIXED_PIN1_ISLANDS: FixedIslandItem[] = [
     h: 250,
   },
   {
-    id: "102",
+    id: "2",
     img: "/assets/islands/island-2.png",
     x: 50,
     y: 50,
@@ -40,7 +43,7 @@ const FIXED_PIN1_ISLANDS: FixedIslandItem[] = [
     h: 250,
   },
   {
-    id: "103",
+    id: "3",
     img: "/assets/islands/island-3.png",
     x: 82,
     y: 72,
@@ -65,38 +68,42 @@ const SHIP_BY_LEVEL: Record<number, string> = {
   3: "/assets/ships/ship-3.png",
 };
 
-function toPinId(v: string | undefined): PinId | null {
-  if (!v) return null;
-  const n = Number(v);
-  if (n === 1 || n === 2 || n === 3) return n as PinId;
-  return null;
-}
-
 export default function IslandSelectPage() {
   const { id } = useParams<{ id: string }>();
-  const pinId = useMemo(() => toPinId(id), [id]);
   const router = useRouter();
   const { user } = useAuth();
 
-  const [store, setStore] = useState<IslandsStore>({});
+  const [problems, setProblems] = useState<Problem[]>([]);
+  const [loading, setLoading] = useState(true);
 
+  // ✅ 백엔드에서 문제 목록 가져오기
   useEffect(() => {
-    const reload = () => setStore(loadStore());
-    reload();
+    if (!id) return;
 
-    const onUpdate = () => reload();
-    window.addEventListener("hackahoy:islands-updated", onUpdate);
-    return () =>
-      window.removeEventListener("hackahoy:islands-updated", onUpdate);
-  }, []);
+    async function fetchProblems() {
+      try {
+        const islandId = Number(id);
+        const data = await getIslandProblems(islandId);
+        setProblems(data);
+        console.log(`✅ Island ${islandId} problems loaded:`, data);
+      } catch (error) {
+        console.error('❌ Failed to fetch island problems:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
 
-  if (!pinId) return null;
+    fetchProblems();
+  }, [id]);
+
+  if (!id) return null;
 
   const level = user?.level ?? 1;
   const shipImg = SHIP_BY_LEVEL[level] ?? SHIP_BY_LEVEL[1];
+  const islandId = Number(id);
 
   // ✅ pin1 고정 (유지)
-  if (pinId === 1) {
+  if (islandId === 1) {
     return (
       <main className={styles.pageRoot}>
         <section
@@ -142,8 +149,8 @@ export default function IslandSelectPage() {
     );
   }
 
-  // ✅ pin2/3: store에 있는 만큼(최대3) 디폴트 섬 표시
-  const problems = getProblemsByPin(store, pinId).slice(0, 3);
+  // ✅ 백엔드에서 가져온 문제들 표시 (최대 3개)
+  const displayProblems = problems.slice(0, 3);
 
   return (
     <main className={styles.pageRoot}>
@@ -157,6 +164,24 @@ export default function IslandSelectPage() {
         }}
       />
       <div className={styles.mapStage}>
+        {loading && (
+          <div
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              color: "white",
+              fontSize: "24px",
+              fontWeight: "bold",
+              textShadow: "2px 2px 4px rgba(0,0,0,0.5)",
+              zIndex: 100,
+            }}
+          >
+            🏝️ 문제를 불러오는 중...
+          </div>
+        )}
+
         <div className={styles.ship}>
           <Image
             src={shipImg}
@@ -168,15 +193,15 @@ export default function IslandSelectPage() {
           />
         </div>
 
-        {problems.map((p, idx) => {
+        {displayProblems.map((problem, idx) => {
           const pos = DEFAULT_SLOTS[idx];
           return (
             <button
-              key={p.islandId}
+              key={problem.id}
               className={styles.islandButton}
               style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
-              onClick={() => router.push(`/challenge/${p.islandId}`)}
-              aria-label={`Go to challenge ${p.islandId}`}
+              onClick={() => router.push(`/challenge/${problem.id}`)}
+              aria-label={`Go to challenge ${problem.id}`}
             >
               <Image
                 src={DEFAULT_ISLAND_IMG}

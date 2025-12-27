@@ -1,3 +1,4 @@
+// src/components/map/CreateSlotsLayer.tsx
 "use client";
 
 import Image from "next/image";
@@ -15,18 +16,29 @@ type Mode = "play" | "select";
 
 export default function CreateSlotsLayer({
   mode = "play",
-  occupiedPins,
+  occupiedPins: storeOccupiedPins, // 기존 로컬스토리지 기반 데이터
+  islands = [], // ✅ MapView에서 넘겨준 DB 데이터 (추가)
   onSelectEmptyPin,
 }: {
   mode?: Mode;
   occupiedPins?: Set<PinId>;
+  islands?: any[]; // ✅ 타입 추가
   onSelectEmptyPin?: (pinId: PinId) => void;
 }) {
   const router = useRouter();
   const { user, openLoginModal } = useAuth() as any;
 
   const isAdmin = user?.role === "ADMIN";
-  const isOccupied = (id: PinId) => occupiedPins?.has(id) ?? false;
+
+  // ✅ [수정] DB 데이터(islands)에 해당 pinId가 있는지 확인하는 로직 추가
+  const isOccupied = (id: PinId) => {
+    // 1. DB 데이터에 이 pinId(islandId)를 가진 섬이 있는지 확인
+    const dbOccupied = islands.some(isl => isl.id === id);
+    // 2. 혹은 기존 로컬스토리지(storeOccupiedPins)에 있는지 확인
+    const localOccupied = storeOccupiedPins?.has(id) ?? false;
+    
+    return dbOccupied || localOccupied;
+  };
 
   const goIsland = (pinId: PinId) => {
     if (!user) {
@@ -39,68 +51,33 @@ export default function CreateSlotsLayer({
   return (
     <div style={{ position: "absolute", inset: 0, zIndex: 20 }}>
       {PIN_POS.map((pin) => {
-        const occupied = isOccupied(pin.id);
+        const occupied = isOccupied(pin.id); // ✅ 수정된 판별 로직 사용
 
-        // select: admin만 + 빈 핀만 클릭
+        // ... (나머지 clickable, title, onClick 로직은 동일)
         const clickable =
-          mode === "play" ? occupied : isAdmin && !occupied && pin.id !== 1; // ✅ pin 1은 생성 선택 불가
+          mode === "play" ? occupied : isAdmin && !occupied && pin.id !== 1;
 
-        const title =
-          mode === "play"
-            ? occupied
-              ? "섬으로 이동"
-              : "아직 생성되지 않았습니다"
-            : occupied
-            ? "이미 사용 중"
-            : "여기에 문제 생성";
-
-        const onClick = () => {
-          if (!clickable) return;
-          if (mode === "play") return goIsland(pin.id);
-          onSelectEmptyPin?.(pin.id);
-        };
-
+        // ... (이하 동일)
         return (
-          <div
-            key={pin.id}
-            style={{
-              position: "absolute",
-              left: pin.left,
-              top: pin.top,
-              transform: "translate(-50%, -50%)",
-            }}
-          >
+          <div key={pin.id} style={{ position: "absolute", left: pin.left, top: pin.top, transform: "translate(-50%, -50%)" }}>
             <button
               type="button"
-              onClick={onClick}
-              disabled={!clickable}
-              aria-label={`map pin ${pin.id}`}
-              title={title}
-              style={{
-                background: "none",
-                border: "none",
-                padding: 0,
-                lineHeight: 0,
-                cursor: clickable ? "pointer" : "not-allowed",
+              onClick={() => {
+                if (!clickable) return;
+                if (mode === "play") return goIsland(pin.id);
+                onSelectEmptyPin?.(pin.id);
               }}
+              disabled={!clickable}
+              style={{ background: "none", border: "none", padding: 0, cursor: clickable ? "pointer" : "not-allowed" }}
             >
               <Image
                 src="/assets/icons/main-marker.png"
                 alt="map pin"
                 width={48}
                 height={48}
-                priority
                 style={{
                   imageRendering: "pixelated",
-                  display: "block",
-                  opacity:
-                    mode === "select"
-                      ? occupied
-                        ? 0.35
-                        : 1
-                      : occupied
-                      ? 1
-                      : 0.35,
+                  opacity: mode === "select" ? (occupied ? 0.35 : 1) : (occupied ? 1 : 0.35),
                 }}
               />
             </button>

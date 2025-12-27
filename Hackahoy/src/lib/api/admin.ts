@@ -1,3 +1,14 @@
+// src/lib/api/admin.ts
+import axios from "axios";
+
+const API_URL = 'http://localhost:4000';
+
+// ✅ 헬퍼: 토큰 가져오기
+const getAuthHeader = () => {
+  const token = localStorage.getItem('accessToken');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 export type AdminProblemCreatePayload = {
   title: string;
   description: string;
@@ -11,125 +22,68 @@ export type AdminUser = {
   nickname: string;
   email: string;
   banned: boolean;
+  role?: string; // DB에 role이 있다면 추가
 };
 
 export type AdminLog = {
   id: string;
-  at: string; // ISO
+  at: string;
   userId: string;
   action: "LOGIN" | "LOGOUT" | "VIEW_CHALLENGE" | "SUBMIT_FLAG" | "BAN_USER";
   target?: string;
   ip?: string;
 };
 
-const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-let mockUsers: AdminUser[] = [
-  { id: "u_1001", nickname: "PLAYER1", email: "p1@test.com", banned: false },
-  { id: "u_1002", nickname: "PLAYER2", email: "p2@test.com", banned: true },
-  {
-    id: "u_1003",
-    nickname: "ADMINLIKE",
-    email: "admin@test.com",
-    banned: false,
-  },
-];
-
-let mockLogs: AdminLog[] = [
-  {
-    id: "l_1",
-    at: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-    userId: "u_1001",
-    action: "LOGIN",
-    ip: "127.0.0.1",
-  },
-  {
-    id: "l_2",
-    at: new Date(Date.now() - 1000 * 60 * 3).toISOString(),
-    userId: "u_1001",
-    action: "VIEW_CHALLENGE",
-    target: "101",
-  },
-  {
-    id: "l_3",
-    at: new Date(Date.now() - 1000 * 60 * 1).toISOString(),
-    userId: "u_1002",
-    action: "SUBMIT_FLAG",
-    target: "103",
-  },
-];
-
-export async function createProblem(payload: AdminProblemCreatePayload) {
-  await wait(300);
-  // 실제 백엔드 붙이면 여기서 fetch로 교체
-  return {
-    id: `p_${Math.floor(Math.random() * 100000)}`,
-    ...payload,
-    createdAt: new Date().toISOString(),
-  };
-}
-
-export async function listUsers(q?: { keyword?: string }) {
-  await wait(200);
-  const kw = (q?.keyword ?? "").trim().toLowerCase();
-  if (!kw) return [...mockUsers];
-
-  return mockUsers.filter((u) => {
-    return (
-      u.id.toLowerCase().includes(kw) ||
-      u.nickname.toLowerCase().includes(kw) ||
-      u.email.toLowerCase().includes(kw)
-    );
-  });
-}
-
-export async function setUserBanned(userId: string, banned: boolean) {
-  await wait(200);
-  mockUsers = mockUsers.map((u) => (u.id === userId ? { ...u, banned } : u));
-
-  mockLogs = [
+// 1. 문제 생성 (실제 DB 저장)
+export async function createProblem(payload: any) {
+  const token = localStorage.getItem("accessToken");
+  
+  const response = await axios.post(
+    `${API_URL}/admin/problems`, 
     {
-      id: `l_${Date.now()}`,
-      at: new Date().toISOString(),
-      userId: "admin",
-      action: "BAN_USER",
-      target: `${userId}:${banned ? "BAN" : "UNBAN"}`,
+      islandId: Number(payload.islandId),
+      title: payload.title,
+      description: payload.description,
+      hint: payload.hint,
+      correctFlag: payload.flag, // 프론트 input의 flag를 correctFlag로 보냄
+      serverUrl: payload.serverUrl,
     },
-    ...mockLogs,
-  ];
-
-  const updated = mockUsers.find((u) => u.id === userId);
-  if (!updated) throw new Error("User not found");
-  return updated;
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    }
+  );
+  return response.data;
 }
 
+// 2. 유저 목록 조회 (실제 DB 유저들)
+export async function listUsers(q?: { keyword?: string }) {
+  const response = await axios.get(`${API_URL}/admin/users`, {
+    headers: getAuthHeader(),
+    params: { q: q?.keyword }, // 백엔드에서 검색어를 처리하도록 전달
+  });
+  return response.data; // 백엔드는 AdminUser[] 형태를 반환해야 함
+}
+
+// 3. 유저 차단 상태 변경
+export async function setUserBanned(userId: string, banned: boolean) {
+  const response = await axios.patch(
+    `${API_URL}/admin/users/${userId}/ban`,
+    { banned },
+    { headers: getAuthHeader() }
+  );
+  return response.data;
+}
+
+// 4. 로그 목록 조회
 export async function listLogs(q?: {
   keyword?: string;
   action?: AdminLog["action"] | "ALL";
-  from?: string; // YYYY-MM-DD
-  to?: string; // YYYY-MM-DD
+  from?: string;
+  to?: string;
 }) {
-  await wait(200);
-
-  let rows = [...mockLogs];
-
-  const kw = (q?.keyword ?? "").trim().toLowerCase();
-  if (kw) {
-    rows = rows.filter((l) => {
-      const blob = `${l.userId} ${l.action} ${l.target ?? ""} ${
-        l.ip ?? ""
-      }`.toLowerCase();
-      return blob.includes(kw);
-    });
-  }
-
-  const action = q?.action ?? "ALL";
-  if (action !== "ALL") rows = rows.filter((l) => l.action === action);
-
-  const from = q?.from ? new Date(`${q.from}T00:00:00`) : null;
-  const to = q?.to ? new Date(`${q.to}T23:59:59`) : null;
-  if (from) rows = rows.filter((l) => new Date(l.at) >= from);
-  if (to) rows = rows.filter((l) => new Date(l.at) <= to);
-
-  return rows;
+  const response = await axios.get(`${API_URL}/admin/logs`, {
+    headers: getAuthHeader(),
+    params: q, // keyword, action, from, to를 쿼리 파라미터로 전송
+  });
+  return response.data;
 }

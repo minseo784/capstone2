@@ -6,6 +6,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import styles from "./new.module.css";
 import { useAuth } from "@/components/common/AuthContext";
+import axios from "axios";
 
 import {
   loadStore,
@@ -37,7 +38,12 @@ export default function AdminCreateProblemPage() {
   const sp = useSearchParams();
   const { user } = useAuth() as any;
 
-  const isAdmin = user?.role === "ADMIN";
+  const isAdmin = user?.isAdmin === true;
+
+  if (user === null) {
+    return <div style={{ color: "white" }}>사용자 확인 중...</div>;
+  }
+
   const pinId = useMemo(() => toPinId(sp.get("pin")), [sp]);
 
   const [title, setTitle] = useState("");
@@ -61,48 +67,41 @@ export default function AdminCreateProblemPage() {
     flag.trim().length > 0 &&
     serverUrl.trim().length > 0;
 
-  const onCreate = (e: FormEvent) => {
+    // onCreate 함수 수정 - 백엔드에서 직접 가져오게
+  // 기존 onCreate를 지우고 이걸 붙여넣으세요
+  const onCreate = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!isAdmin) return;
-    if (!pinId || pinId === 1) return;
+    // 1. 유효성 검사
+    if (!isAdmin || !pinId) return;
 
-    const current = loadStore();
-    const curList = getProblemsByPin(current, pinId);
+    try {
+      const token = localStorage.getItem("accessToken");
+      
+      // 2. 백엔드 API 호출 (axios 사용)
+      await axios.post("http://localhost:4000/admin/problems", {
+        islandId: Number(pinId),      // 섬 번호
+        title: title.trim(),          // 제목
+        description: description.trim(), // 설명
+        hint: "힌트는 기본값입니다.",    // 힌트 (필수)
+        correctFlag: flag.trim(),     // 정답 (correctFlag로 이름 매칭)
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
-    if (curList.length >= 3) {
-      setError("이 핀은 이미 3개가 꽉 찼습니다. 다른 핀을 선택하세요.");
-      return;
+      alert("✅ 문제가 서버에 등록되었습니다!");
+      router.push(`/island/${pinId}`); // 등록 후 해당 섬으로 이동
+    } catch (err: any) {
+      console.error("등록 에러:", err);
+      setError(err.response?.data?.message || "서버 등록에 실패했습니다.");
     }
-
-    const used = getUsedSlots(current, pinId);
-    const slot = pickNextSlot(used);
-    if (!slot) {
-      setError("슬롯이 모두 사용 중입니다.");
-      return;
-    }
-
-    const rec: IslandRecord = {
-      islandId: `pin-${pinId}-${slot}`, // ✅ pin 내부 슬롯과 1:1 매핑
-      pinId,
-      slot, // ✅ 여기 때문에 에러 해결
-      title: title.trim(),
-      description: description.trim(),
-      flag: flag.trim(),
-      serverUrl: serverUrl.trim(),
-      createdAt: new Date().toISOString(),
-    };
-
-    const next: IslandsStore = addProblemToPin(current, pinId, rec);
-    saveStore(next);
-    window.dispatchEvent(new Event("hackahoy:islands-updated"));
-
-    // ✅ 생성 완료 -> 바다 위 default 섬이 1개 추가된 상태가 됨
-    router.push(`/island/${pinId}`);
   };
 
-  if (!isAdmin) return null;
+  if (!isAdmin) {
+    console.log("현재 유저 정보:", user); // 디버깅용: 콘솔에 뭐가 찍히는지 보세요
+    return <div style={{ color: "white" }}>관리자 권한이 없습니다.</div>;
+  }
 
   return (
     <section className={styles.stage}>
