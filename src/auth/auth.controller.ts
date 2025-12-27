@@ -1,5 +1,5 @@
 // src/auth/auth.controller.ts
-import { Controller, Get, Req, UseGuards, Post, Body, Res } from '@nestjs/common';
+import { Controller, Get, Req, UseGuards, Post, Body, Res, ForbiddenException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -62,6 +62,14 @@ export class AuthController {
     const userId = req.user.userId || req.user.id; 
     return this.auth.updateNickname(userId, body.nickname);
   }
+
+  @Post('unsubscribe')
+  @UseGuards(JwtAuthGuard)
+  async unsubscribe(@Req() req: any) {
+    const userId = req.user.userId || req.user.id;
+    await this.auth.deleteUserAccount(userId);
+    return { success: true, message: '탈퇴가 완료되었습니다.' };
+  }
   
   // ---- KAKAO ----
   @UseGuards(AuthGuard('kakao'))
@@ -69,26 +77,30 @@ export class AuthController {
   kakaoLogin() {}
 
 @UseGuards(AuthGuard('kakao'))
-  @Get('kakao/callback')
-  async kakaoCallback(@Req() req: any, @Res() res: any) { // ✅ @Res() 추가
+@Get('kakao/callback')
+async kakaoCallback(@Req() req: any, @Res() res: any) {
+  try {
     const kakao = req.user;
-
     const user = await this.auth.upsertSocialUser({
       provider: 'KAKAO',
       providerId: String(kakao.kakaoId),
       nickname: kakao.profile?.username ?? 'kakao-user',
     });
 
-    const token = this.auth.signToken({
-      userId: user.id,
-      provider: 'kakao',
-    });
-
-    // ✅ JSON 반환 대신 프론트엔드로 리다이렉트 (토큰을 쿼리로 전달)
+    const token = this.auth.signToken({ userId: user.id, provider: 'kakao' });
     return res.redirect(`http://localhost:3000/auth/kakao/callback?token=${token}`);
-  }
 
-  // ---- GOOGLE ----
+  } catch (error) {
+    // ✅ 만약 ForbiddenException(밴 유저)이라면 에러 파라미터를 붙여서 리다이렉트
+    if (error instanceof ForbiddenException) {
+      return res.redirect(`http://localhost:3000/auth/kakao/callback?error=banned`);
+    }
+    // 다른 에러는 기본 처리
+    return res.redirect(`http://localhost:3000/auth/kakao/callback?error=unknown`);
+  }
+}
+
+// ---- GOOGLE ----
   @UseGuards(AuthGuard('google'))
   @Get('google')
   googleLogin() {}
@@ -96,21 +108,29 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   @Get('google/callback')
   async googleCallback(@Req() req: any, @Res() res: any) {
-    console.log('[GOOGLE CALLBACK QUERY]', req.query);
-    const google = req.user; // { googleId, email, nickname }
+    try {
+      const google = req.user;
 
-    const user = await this.auth.upsertSocialUser({
-      provider: 'GOOGLE',
-      providerId: String(google.googleId),
-      nickname: google.nickname ?? 'google-user',
-    });
+      // 여기서 upsertSocialUser가 실행될 때 내부에서 isBanned를 체크하고 에러를 던집니다.
+      const user = await this.auth.upsertSocialUser({
+        provider: 'GOOGLE',
+        providerId: String(google.googleId),
+        nickname: google.nickname ?? 'google-user',
+      });
 
-    const token = this.auth.signToken({
-      userId: user.id,
-      provider: 'google',
-    });
+      const token = this.auth.signToken({
+        userId: user.id,
+        provider: 'google',
+      });
 
-    return res.redirect(`http://localhost:3000/auth/google/callback?token=${token}`);
+      return res.redirect(`http://localhost:3000/auth/google/callback?token=${token}`);
+    } catch (error) {
+      // 밴 당한 유저라면 프론트 콜백 페이지로 에러 정보를 보냄
+      if (error instanceof ForbiddenException) {
+        return res.redirect(`http://localhost:3000/auth/google/callback?error=banned`);
+      }
+      return res.redirect(`http://localhost:3000/auth/google/callback?error=unknown`);
+    }
   }
 
   // ---- NAVER ----
@@ -121,19 +141,26 @@ export class AuthController {
   @UseGuards(AuthGuard('naver'))
   @Get('naver/callback')
   async naverCallback(@Req() req: any, @Res() res: any) {
-    const naver = req.user; // { naverId, nickname }
+    try {
+      const naver = req.user;
 
-    const user = await this.auth.upsertSocialUser({
-      provider: 'NAVER',
-      providerId: String(naver.naverId),
-      nickname: naver.nickname ?? 'naver-user',
-    });
+      const user = await this.auth.upsertSocialUser({
+        provider: 'NAVER',
+        providerId: String(naver.naverId),
+        nickname: naver.nickname ?? 'naver-user',
+      });
 
-    const token = this.auth.signToken({
-      userId: user.id,
-      provider: 'naver',
-    });
+      const token = this.auth.signToken({
+        userId: user.id,
+        provider: 'naver',
+      });
 
-    return res.redirect(`http://localhost:3000/auth/naver/callback?token=${token}`);
+      return res.redirect(`http://localhost:3000/auth/naver/callback?token=${token}`);
+    } catch (error) {
+      if (error instanceof ForbiddenException) {
+        return res.redirect(`http://localhost:3000/auth/naver/callback?error=banned`);
+      }
+      return res.redirect(`http://localhost:3000/auth/naver/callback?error=unknown`);
+    }
   }
 }

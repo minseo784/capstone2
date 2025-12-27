@@ -92,14 +92,18 @@ export class ProblemService {
     });
   }
 
-  async createProblem(body: { islandId: number; title: string; description: string; hint: string; correctFlag: string }) {
+  async createProblem(data: any) {
     return this.prisma.problem.create({
       data: {
-        islandId: Number(body.islandId),
-        title: body.title,
-        description: body.description,
-        hint: body.hint,
-        correctFlag: body.correctFlag,
+        title: data.title,
+        description: data.description,
+        correctFlag: data.correctFlag,
+        serverLink: data.serverLink,
+        hint: data.hint,
+        // 만약 islandId가 필요하다면 data에서 받아와서 연결
+        island: {
+          connect: { id: data.islandId || 1 } // 기본값 혹은 전달받은 ID
+        }
       },
     });
   }
