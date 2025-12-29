@@ -98,7 +98,7 @@ export default function IslandSelectPage() {
 
   if (!id) return null;
 
-  const level = user?.level ?? 1;
+  const level = user?.levelNum ?? 1;
   const shipImg = SHIP_BY_LEVEL[level] ?? SHIP_BY_LEVEL[1];
   const islandId = Number(id);
 

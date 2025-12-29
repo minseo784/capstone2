@@ -73,25 +73,41 @@ export default function AdminCreateProblemPage() {
     e.preventDefault();
     setError(null);
 
-    // 1. 유효성 검사
+    // 1. 기초 권한 확인
     if (!isAdmin || !pinId) return;
+
+    // 2. 서버 URL 형식 검증 (http:// 또는 https:// 포함 여부)
+    const urlPattern = /^https?:\/\//;
+    if (!urlPattern.test(serverUrl.trim())) {
+      setError("올바른 서버 URL 형식이 아닙니다. (http:// 또는 https:// 포함)");
+      return;
+    }
+
+    // 3. 플래그 형식 검증 (hackahoy{내용} 형식)
+    // 최소 한 글자 이상의 내용이 중괄호 안에 있어야 함
+    const flagPattern = /^hackahoy\{.+\}$/;
+    if (!flagPattern.test(flag.trim())) {
+      setError("플래그 형식이 올바르지 않습니다. hackahoy{내용} 형식을 지켜주세요.");
+      return;
+    }
 
     try {
       const token = localStorage.getItem("accessToken");
       
-      // 2. 백엔드 API 호출 (axios 사용)
+      // 4. 백엔드 API 호출 (serverUrl도 전송 데이터에 포함 확인 필요)
       await axios.post("http://localhost:4000/admin/problems", {
-        islandId: Number(pinId),      // 섬 번호
-        title: title.trim(),          // 제목
-        description: description.trim(), // 설명
-        hint: "힌트는 기본값입니다.",    // 힌트 (필수)
-        correctFlag: flag.trim(),     // 정답 (correctFlag로 이름 매칭)
+        islandId: Number(pinId),
+        title: title.trim(),
+        description: description.trim(),
+        hint: "힌트는 기본값입니다.",
+        correctFlag: flag.trim(),
+        serverLink: serverUrl.trim(), // 백엔드 필드명이 serverLink라면 이대로 유지
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       alert("✅ 문제가 서버에 등록되었습니다!");
-      router.push(`/island/${pinId}`); // 등록 후 해당 섬으로 이동
+      router.push(`/island/${pinId}`);
     } catch (err: any) {
       console.error("등록 에러:", err);
       setError(err.response?.data?.message || "서버 등록에 실패했습니다.");

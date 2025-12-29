@@ -1,17 +1,16 @@
-// src/components/common/AuthContext.tsx
-
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
+import { useRouter } from "next/navigation";
 
 export type AuthUser = {
   userId: string;
   nickname: string;
   levelNum: number;
-  role: "USER" | "ADMIN";
-  oauthProvider: "kakao" | "naver" | "google";
-  email?: string;
+  isAdmin: boolean; 
+  provider: "KAKAO" | "NAVER" | "GOOGLE";
+  prividerId?: string;
 };
 
 type AuthContextValue = {
@@ -19,14 +18,10 @@ type AuthContextValue = {
   user: AuthUser | null;
   login: (jwt: string, userData: AuthUser) => void;
   logout: () => void;
-  devLoginAsAdmin: () => void;
-
-  // ✅ 로그인 모달 전역 제어
   loginModalOpen: boolean;
   openLoginModal: () => void;
   closeLoginModal: () => void;
-
-  refreshUser: () => Promise<void>;
+  refreshUser: () => Promise<AuthUser | null>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -34,99 +29,67 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
-
-  // ✅ 로그인 모달 상태
   const [loginModalOpen, setLoginModalOpen] = useState(false);
+
+  const router = useRouter();
+
   const openLoginModal = () => setLoginModalOpen(true);
   const closeLoginModal = () => setLoginModalOpen(false);
 
-  // ⭐ [추가] 유저 정보를 서버로부터 새로고침하는 함수
-  const refreshUser = async () => {
+  const refreshUser = async (): Promise<AuthUser | null> => {
     const savedToken = localStorage.getItem("accessToken");
-    if (!savedToken) return;
+    if (!savedToken) return null;
 
     try {
       const res = await axios.get("http://localhost:4000/auth/me", {
-        headers: { Authorization: `Bearer ${savedToken}` }
+        headers: { Authorization: `Bearer ${savedToken}` },
       });
-      setUser(res.data);
-      console.log("🔄 유저 정보 동기화 완료:", res.data);
+      const userData = res.data as AuthUser;
+      setUser(userData);
+      setToken(savedToken);
+      return userData; 
     } catch (err) {
       console.error("❌ 유저 정보 갱신 실패:", err);
+      localStorage.removeItem("accessToken");
+      setToken(null);
+      setUser(null);
+      return null;
     }
   };
 
-  // ⭐ [추가] 앱 시작 시 자동 로그인 체크
   useEffect(() => {
-    const savedToken = localStorage.getItem("accessToken");
-    if (savedToken) {
-      // 백엔드 /auth/me API 호출해서 유저 정보 가져오기
-      axios.get("http://localhost:4000/auth/me", {
-        headers: { Authorization: `Bearer ${savedToken}` }
-      })
-      .then(res => {
-        setToken(savedToken);
-        // 백엔드 AuthController의 me(@Req() req) { return req.user } 결과에 맞춰 설정
-        // 만약 res.data 안에 user 객체가 따로 있다면 res.data.user로 변경
-        setUser(res.data); 
-        console.log("✅ 자동 로그인 성공:", res.data);
-      })
-      .catch(err => {
-        console.error("❌ 토큰 만료 또는 유효하지 않음:", err);
-        localStorage.removeItem("accessToken");
-      });
-    }
+    refreshUser();
   }, []);
 
+  // ✅ 로그인 함수 수정: 어드민 여부와 상관없이 홈("/")으로 이동
   const login = (jwt: string, userData: AuthUser) => {
     setToken(jwt);
     setUser(userData);
-    localStorage.setItem("accessToken", jwt); // 로컬 스토리지 저장
+    localStorage.setItem("accessToken", jwt);
     setLoginModalOpen(false);
+
+    // 로그인이 완료되면 무조건 메인 홈으로 이동합니다.
+    router.push("/");
   };
 
   const logout = () => {
     setToken(null);
     setUser(null);
-    localStorage.removeItem("accessToken"); // 로컬 스토리지 삭제
+    localStorage.removeItem("accessToken");
     setLoginModalOpen(false);
-  };
-
-  // DEV 전용 ADMIN 로그인
-  const devLoginAsAdmin = () => {
-    const adminToken = "DEV_ADMIN_TOKEN";
-    const adminUser: AuthUser = {
-      userId: "admin",
-      nickname: "ADMIN",
-      levelNum: 99,
-      role: "ADMIN",
-      oauthProvider: "google",
-      email: "admin@hackahoy.dev",
-    };
-    setToken(adminToken);
-    setUser(adminUser);
-    localStorage.setItem("accessToken", adminToken);
-    setLoginModalOpen(false);
+    router.push("/");
   };
 
   return (
     <AuthContext.Provider
       value={{
-        token,
-        user,
-        login,
-        logout,
-        devLoginAsAdmin,
-        refreshUser,        // ✅ 추가한 함수
-        loginModalOpen,     // ✅ 확인
-        openLoginModal,    // ✅ 이 줄이 있는지 꼭 보세요!
-        closeLoginModal,   // ✅ 이 줄도!
+        token, user, login, logout,
+        refreshUser, loginModalOpen, openLoginModal, closeLoginModal,
       }}
     >
       {children}
     </AuthContext.Provider>
   );
-
 }
 
 export function useAuth() {

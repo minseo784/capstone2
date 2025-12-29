@@ -8,18 +8,20 @@ import styles from "./Mypage.module.css";
 import axios from "axios";
 
 type UserShape = {
-  userId?: string;
+  id?: string;         // 우리 DB 내부 키
   nickname?: string;
   levelNum?: number;
-  oauthProvider?: string;
-  email?: string;
+  provider?: string;   // ✅ 서버 select와 일치시킴
+  providerId?: string; // ✅ 사용자가 볼 ID 값
 };
 
 export default function MyPage() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout } = useAuth(); // AuthContext에서 가져오는 user 객체
 
-  const safeUser = useMemo(() => (user as UserShape) ?? {}, [user]);
+  // user 객체의 타입을 UserShape로 안전하게 캐스팅
+  const safeUser = useMemo(() => (user as any) ?? {}, [user]);
+  
   const [nickname, setNickname] = useState("");
   const level = safeUser.levelNum ?? 1;
 
@@ -47,6 +49,8 @@ export default function MyPage() {
 
   const provider = (safeUser.oauthProvider ?? "kakao").toUpperCase();
   const email = safeUser.email ?? "";
+  const displayProvider = (safeUser.provider ?? "KAKAO").toUpperCase();
+  const displayId = safeUser.providerId ?? "Unknown ID";
 
   
 
@@ -77,44 +81,49 @@ export default function MyPage() {
     }
   };
 
-  const handleUnsubscribe = () => {
-    const ok = confirm("정말 탈퇴하시겠습니까? (데모)");
+  const handleUnsubscribe = async () => {
+    const ok = confirm("정말 탈퇴하시겠습니까? 모든 풀이 기록이 삭제되며 복구할 수 없습니다.");
     if (!ok) return;
-    alert("데모: 탈퇴 처리 후 로그아웃됩니다.");
-    handleLogout();
+
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) return;
+
+      // 1. 백엔드 탈퇴 API 호출
+      await axios.post(
+        "http://localhost:4000/auth/unsubscribe",
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      alert("탈퇴 처리가 완료되었습니다. 이용해 주셔서 감사합니다.");
+
+      // 2. 클라이언트 로그아웃 처리 및 홈으로 이동
+      handleLogout(); 
+    } catch (error) {
+      console.error("탈퇴 처리 실패:", error);
+      alert("탈퇴 처리 중 오류가 발생했습니다.");
+    }
   };
 
   return (
     <main className={styles.pageRoot}>
-      {/* ❌ topBar 삭제: HOME/LOGOUT은 AppTopNav가 /mypage에서 자동 표시 */}
-
-      {/* 중앙 카드 */}
       <div className={styles.card}>
         <div className={styles.innerRow}>
-          {/* 왼쪽 */}
+          {/* 왼쪽 패널 */}
           <section className={styles.leftPanel}>
             <div className={styles.avatarWrapper}>
-              <Image
-                src={shipImgSrc}
-                alt={`Level ${level} ship`}
-                width={88}
-                height={88}
-                priority
-                onError={(e) => {
-                  // 혹시 해당 레벨의 이미지가 없을 경우 기본 이미지로 대체
-                  const target = e.target as HTMLImageElement;
-                  target.src = "/assets/ships/ship-1.png";
-                }}
-                />
+              <Image src={shipImgSrc} alt="ship" width={88} height={88} priority />
             </div>
-
             <p className={styles.shipName}>{nickname}</p>
             <p className={styles.levelText}>LEVEL : {level}</p>
           </section>
 
           <div className={styles.divider} />
 
-          {/* 오른쪽 */}
+          {/* 오른쪽 패널 */}
           <section className={styles.rightPanel}>
             <div className={styles.field}>
               <p className={styles.fieldLabel}>NICKNAME</p>
@@ -129,7 +138,7 @@ export default function MyPage() {
               <p className={styles.fieldLabel}>SOCIAL LOGIN</p>
               <input
                 className={`${styles.input} ${styles.inputReadOnly}`}
-                value={provider}
+                value={displayProvider} // ✅ 수정됨
                 readOnly
               />
             </div>
@@ -138,7 +147,7 @@ export default function MyPage() {
               <p className={styles.fieldLabel}>ID</p>
               <input
                 className={`${styles.input} ${styles.inputReadOnly}`}
-                value={email}
+                value={displayId} // ✅ 수정됨 (이제 providerId가 보입니다)
                 readOnly
               />
             </div>
