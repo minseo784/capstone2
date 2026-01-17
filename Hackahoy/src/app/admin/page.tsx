@@ -7,7 +7,6 @@ import styles from "./admin.module.css";
 import { listUsers, setUserBanned, AdminUser } from "@/lib/api/admin";
 import axios from "axios";
 
-// API에서 가져오는 유저 타입에 맞게 설정
 type Role = "ADMIN" | "USER";
 
 const PAGE_SIZE = 3;
@@ -16,15 +15,13 @@ export default function AdminPage() {
   const router = useRouter();
 
   const [q, setQ] = useState("");
-  const [rows, setRows] = useState<AdminUser[]>([]); // 실데이터 저장
+  const [rows, setRows] = useState<AdminUser[]>([]); 
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
 
-  // ✅ [데이터 로드] 서버에서 유저 목록 가져오기
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
-      // listUsers API 호출 (검색어 q 전달)
       const data = await listUsers({ keyword: q });
       setRows(data);
     } catch (err) {
@@ -34,12 +31,10 @@ export default function AdminPage() {
     }
   }, [q]);
 
-  // 페이지 진입 및 검색어 변경 시 실행
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
 
-  // 클라이언트 사이드 페이징 로직
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
 
@@ -51,7 +46,6 @@ export default function AdminPage() {
   const goPrev = () => setPage((p) => Math.max(1, p - 1));
   const goNext = () => setPage((p) => Math.min(totalPages, p + 1));
 
-  // ✅ [권한 변경] (필요 시 API 추가 구현 가능, 현재는 로컬 상태 변경 예시)
   const toggleRole = (id: string) => {
     setRows((prev) =>
       prev.map((r) =>
@@ -60,11 +54,8 @@ export default function AdminPage() {
     );
   };
 
-  // API를 직접 호출 X
   const handleToggleBanned = (userId: string, currentBanned: boolean) => {
-  // ❌ API 호출(setUserBanned) 코드를 여기서 지웁니다.
   
-  // ✅ 로컬 상태만 업데이트 (체크 표시만 뗐다 붙였다 함)
   setRows((prev) =>
     prev.map((u) => (u.id === userId ? { ...u, banned: !currentBanned } : u))
   );
@@ -74,10 +65,9 @@ export default function AdminPage() {
     try {
       const token = localStorage.getItem("accessToken");
       
-      // ✅ 모든 유저의 변경 사항(권한, 차단 여부)을 한꺼번에 전송
       await axios.post(
         "http://localhost:4000/admin/users/batch-update",
-        { users: rows }, // rows 배열 전체를 보냄
+        { users: rows }, 
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -131,7 +121,6 @@ export default function AdminPage() {
                     className={styles.roleBtn}
                     onClick={() => toggleRole(r.id)}
                   >
-                    {/* ✅ role이 'ADMIN'이면 "Admin", 아니면 "User" 표시 */}
                     {r.role === "ADMIN" ? "Admin" : "User"} <span>↕</span>
                   </button>
                 </div>
@@ -142,7 +131,6 @@ export default function AdminPage() {
                       onClick={() => handleToggleBanned(r.id, r.banned)}
                       aria-label={`toggle ban ${r.nickname}`}
                     >
-                      {/* ✅ r.banned가 true일 때만 체크 표시(✓) 렌더링 */}
                       {r.banned ? <span className={styles.check}>✓</span> : null}
                     </button>
                   </div>
@@ -150,7 +138,6 @@ export default function AdminPage() {
           ))
         )}
 
-        {/* 빈 행 채우기 */}
         {!loading && Array.from({ length: PAGE_SIZE - pageRows.length }).map((_, i) => (
           <div key={`empty-${i}`} className={styles.row}>
             <div className={styles.cell}>&nbsp;</div>

@@ -93,7 +93,6 @@ export default function ChallengePage() {
     }
   };
 
-  // 배경 이미지 결정
   const getBackgroundImage = (islandId: number) => {
     if (islandId === 1 && problem && problem.id <= 3) {
       return `/assets/backgrounds/island-${problem.id}.png`;
@@ -102,7 +101,6 @@ export default function ChallengePage() {
     return "/assets/backgrounds/default-island.png";
   };
 
-  // 힌트 이미지 결정
   const getHintImage = (problemId: number, islandId: number) => {
     if (islandId === 1 && [1, 2, 3].includes(problemId)) {
       return `/assets/icons/hint-${problemId}.png`;
@@ -111,21 +109,19 @@ export default function ChallengePage() {
   };
 
   if (loading) {
-    return <main className={styles.pageRoot}><div className={styles.statusText}>🎯 문제를 불러오는 중...</div></main>;
+    return <main className={styles.pageRoot}><div className={styles.statusText}>문제를 불러오는 중...</div></main>;
   }
 
   if (!problem || !problem.title) {
-    return <main className={styles.pageRoot}><div className={styles.statusText}>❌ 문제가 아직 생성되지 않았습니다.</div></main>;
+    return <main className={styles.pageRoot}><div className={styles.statusText}>문제가 아직 생성되지 않았습니다.</div></main>;
   }
 
   const bg = getBackgroundImage(problem.islandId);
   const hintIcon = getHintImage(problem.id, problem.islandId);
 
-  // ⭐ [핵심 수정] "힌트는 기본값입니다." 체크 로직
   const DEFAULT_HINT_TEXT = "힌트는 기본값입니다.";
   const isDefaultHint = !problem.hint || problem.hint.trim() === "" || problem.hint === DEFAULT_HINT_TEXT;
 
-  // 유효한 힌트가 있을 때만 데이터 할당
   const hintData: HintData | null = !isDefaultHint ? { img: hintIcon, text: problem.hint! } : null;
 
   return (
@@ -140,10 +136,22 @@ export default function ChallengePage() {
 
             {problem.serverLink && (
               <p className={styles.link}>
-                Server link:&nbsp;
-                <a href={problem.serverLink} target="_blank" rel="noopener noreferrer">{problem.serverLink}</a>
+                {(() => {
+                  return "Server link: ";
+                })()}
+                &nbsp;
+                <a href={problem.serverLink} target="_blank" rel="noopener noreferrer">
+                  {(() => {
+                    if (problem.id === 1) return "http://52.78.240.6:8001";
+                    if (problem.id === 2) return "http://52.78.240.6:8002";
+                    if (problem.id === 3) return "http://52.78.240.6:8003";
+                    return problem.serverLink; 
+                  })()}
+                </a>
               </p>
             )}
+
+            
 
             <form className={styles.formRow} onSubmit={onSubmit}>
               <input
@@ -160,9 +168,7 @@ export default function ChallengePage() {
             {submitting && <p style={{ color: "yellow", marginTop: "10px" }}>제출 중...</p>}
           </div>
 
-          {/* ⭐ [힌트 아이콘 렌더링 영역] */}
           {hintData ? (
-            // 1. 유효한 힌트가 있을 때: 클릭 가능한 버튼
             <button
               type="button"
               className={styles.hintBtn}
@@ -172,7 +178,6 @@ export default function ChallengePage() {
               <Image src={hintData.img} alt="hint" width={260} height={320} />
             </button>
           ) : (
-            // 2. 힌트가 기본값이거나 없을 때: 클릭 불가한 상태 (시각적 피드백 추가)
             <div 
               className={styles.hintBtn} 
               style={{ 
@@ -188,7 +193,6 @@ export default function ChallengePage() {
         </div>
       </section>
 
-      {/* 힌트 모달 */}
       {hintOpen && hintData && (
         <div className={styles.modalDim} onClick={() => setHintOpen(false)}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()} role="dialog">

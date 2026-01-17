@@ -19,7 +19,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: secret, // ✅ string 확정이라 TS 에러 사라짐
+      secretOrKey: secret, 
     });
   }
 

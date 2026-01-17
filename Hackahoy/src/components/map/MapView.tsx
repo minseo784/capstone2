@@ -19,7 +19,6 @@ export default function MapView() {
 
   const isLoggedIn = !!user;
 
-  // ✅ 1. 상태 및 로직 정리
   const [store, setStore] = useState<IslandsStore>({});
   const [islands, setIslands] = useState<Island[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +30,6 @@ export default function MapView() {
     return `/assets/ships/ship-${shipNumber}.png`;
   }, [currentLevel]);
 
-  // 섬 데이터 로드
   useEffect(() => {
     async function fetchIslands() {
       try {
@@ -65,7 +63,6 @@ export default function MapView() {
 
   const occupiedPins = useMemo(() => getOccupiedPinsWithFixed(store), [store]);
 
-  // 로그인 소셜 이동 함수 (백엔드로 리다이렉트)
   const handleKakaoLogin = () => window.location.href = "http://localhost:4000/auth/kakao";
   const handleNaverLogin = () => window.location.href = "http://localhost:4000/auth/naver";
   const handleGoogleLogin = () => window.location.href = "http://localhost:4000/auth/google";
@@ -112,7 +109,7 @@ export default function MapView() {
         islands={islands}
       />
 
-      {/* 로그인 모달 */}
+      {/* 로그인 */}
       {loginModalOpen && !isLoggedIn && (
         <div
           style={{
@@ -150,8 +147,6 @@ export default function MapView() {
               <button type="button" className="social-login-btn" onClick={handleGoogleLogin} style={{ background: "none", border: "none", cursor: "pointer" }}>
                 <Image src="/assets/ui/google.png" alt="구글" width={400} height={90} />
               </button>
-
-              {/* ❌ DevAdminLoginButton 관련 코드를 완전히 삭제했습니다. */}
             </div>
           </div>
         </div>

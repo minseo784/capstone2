@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setToken(savedToken);
       return userData; 
     } catch (err) {
-      console.error("❌ 유저 정보 갱신 실패:", err);
+      console.error("유저 정보 갱신 실패:", err);
       localStorage.removeItem("accessToken");
       setToken(null);
       setUser(null);
@@ -61,14 +61,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshUser();
   }, []);
 
-  // ✅ 로그인 함수 수정: 어드민 여부와 상관없이 홈("/")으로 이동
   const login = (jwt: string, userData: AuthUser) => {
     setToken(jwt);
     setUser(userData);
     localStorage.setItem("accessToken", jwt);
     setLoginModalOpen(false);
 
-    // 로그인이 완료되면 무조건 메인 홈으로 이동합니다.
     router.push("/");
   };
 

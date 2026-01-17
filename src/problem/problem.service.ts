@@ -18,7 +18,6 @@ export class ProblemService {
     });
     if (!problem) throw new NotFoundException('problem not found');
 
-    // 1) 제출 기록은 항상 남김 (스키마에 맞게 flag만 저장)
     await this.prisma.submitFlag.create({
       data: {
         userId,
@@ -30,42 +29,29 @@ export class ProblemService {
     const correct = trimmed === problem.correctFlag;
     if (!correct) return { correct: false };
 
-    // 2) 이미 풀었는지 체크 (중복 레벨업 방지)
+    // 중복 레벨업 방지
     const already = await this.prisma.solvedHistory.findUnique({
       where: { userId_problemId: { userId, problemId } },
     });
     if (already) return { correct: true, alreadySolved: true };
 
-
-    // 3) solved 기록 추가
     await this.prisma.solvedHistory.create({
       data: { userId, problemId },
     });
 
-    // 4) ⭐ [수정] 경험치 기반 레벨 시스템
-    // 먼저 유저가 지금까지 총 몇 문제를 풀었는지 가져옵니다.
     const totalSolvedCount = await this.prisma.solvedHistory.count({
       where: { userId },
     });
 
-    /**
-     * 레벨 계산 로직 (누적 문제 수 기준):
-     * 1렙 -> 0문제
-     * 2렙 -> 1문제 (누적 1)
-     * 3렙 -> 2문제 더 (누적 3)
-     * 4렙 -> 4문제 더 (누적 7)
-     * 5렙 -> 8문제 더 (누적 15)
-     * 공식: 누적 문제 수가 (2^(level-1) - 1) 이상이면 해당 레벨
-     */
     let newLevel = 1;
     while (totalSolvedCount >= Math.pow(2, newLevel) - 1) {
       newLevel++;
     }
-    console.log("업데이트 시도 유저 ID:", userId); // 이 ID가 유저 테이블에 실제로 있는지 확인
+    console.log("업데이트 시도 유저 ID:", userId);
 
-    // 계산된 레벨로 유저 정보 업데이트
+    // 유저 레벨 업데이트
     const updated = await this.prisma.user.update({
-      where: { id: userId }, // 만약 PK가 id가 아니라 email이면 { email: userId }로 수정
+      where: { id: userId },
       data: { levelNum: newLevel },
       select: { levelNum: true },
     });
@@ -87,7 +73,6 @@ export class ProblemService {
         serverLink: true,
         createdAt: true,
         updatedAt: true,
-        // correctFlag는 절대 내려주면 안됨
       },
     });
   }
@@ -100,15 +85,14 @@ export class ProblemService {
         correctFlag: data.correctFlag,
         serverLink: data.serverLink,
         hint: data.hint,
-        // 만약 islandId가 필요하다면 data에서 받아와서 연결
         island: {
-          connect: { id: data.islandId || 1 } // 기본값 혹은 전달받은 ID
+          connect: { id: data.islandId || 1 }
         }
       },
     });
   }
 
-  // 관리자가 문제 목록 조회할 때 사용
+  // 관리자 - 문제 목록 조회
   async listProblems() {
     return this.prisma.problem.findMany({
       orderBy: { id: 'asc' },

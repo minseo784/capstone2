@@ -3,7 +3,7 @@
   inset: 0 0 auto 0;
   height: 96px;
   z-index: 5000;
-  pointer-events: none; /* 바 전체는 클릭 막고, 버튼만 클릭되게 */
+  pointer-events: none; 
 }
 
 .inner {
@@ -35,7 +35,6 @@
   color: #fff;
 }
 
-/* 닉네임/레벨 뱃지 버튼 */
 .badgeBtn {
   height: 42px;
   padding: 0 14px;

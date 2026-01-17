@@ -15,14 +15,12 @@ export class AdminController {
     return users.map(u => ({
       id: u.id,
       nickname: u.nickname,
-      // ✅ isAdmin 값에 따라 'ADMIN' 또는 'USER' 문자열 할당
       role: u.isAdmin ? 'ADMIN' : 'USER',
-      // ✅ DB의 isBanned 값을 프론트의 banned 필드로 매핑
       banned: u.isBanned 
     }));
   }
 
-    @Post('users/batch-update') // 이 경로가 프론트엔드의 axios 주소와 같아야 함
+    @Post('users/batch-update')
     @UseGuards(JwtAuthGuard, AdminGuard)
     async batchUpdate(@Body('users') users: any[]) {
     return this.authService.batchUpdateUsers(users);

@@ -1,6 +1,6 @@
 export type Challenge = {
-  id: string; // "1", "2" ...
-  islandId: string; // 섬과 연결
+  id: string;
+  islandId: string;
   title: string;
   description: string;
   serverLink?: string;

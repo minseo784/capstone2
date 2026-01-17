@@ -27,12 +27,7 @@ export class NaverStrategy extends PassportStrategy(Strategy, 'naver') {
     profile: any,
     done: Function,
   ) {
-    /**
-     * profile 구조 (중요):
-     * profile.id
-     * profile.nickname
-     * profile.email (optional)
-     */
+    
     const naverId = profile.id;
     const nickname = profile.nickname ?? 'naver-user';
 

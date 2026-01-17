@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-const API_BASE = 'http://localhost:5001';
+const API_BASE = 'http://localhost:5002';
 
 export default function TextPage() {
     const router = useRouter();

@@ -35,8 +35,6 @@ export class AuthService {
       },
     });
 
-    // ✅ [추가] 차단 여부 확인 로직
-    // upsert 결과로 나온 user 객체의 isBanned가 true라면 에러를 던집니다.
     if (user.isBanned) {
       throw new ForbiddenException('차단된 계정입니다. 관리자에게 문의하세요.');
     }
@@ -52,8 +50,8 @@ export class AuthService {
         id: true,
         nickname: true,
         levelNum: true,
-        provider: true,   // ✅ 추가: KAKAO 인지 등 구분
-        providerId: true, // ✅ 추가: 사용자가 ID라고 생각하는 고유 번호
+        provider: true,  
+        providerId: true,
         isAdmin: true,
         isBanned: true,
         createdAt: true,
@@ -87,19 +85,17 @@ export class AuthService {
     try {
       return await this.prisma.$transaction(async (tx) => {
         
-        // 1. 제출 로그(SubmitFlag) 삭제 - 🚨 이번 에러의 범인
+        // SubmitFlag 삭제
         await tx.submitFlag.deleteMany({
           where: { userId: userId },
         });
 
-        // 2. 풀이 완료 기록(SolvedHistory) 삭제
+        // SolvedHistory 삭제
         await tx.solvedHistory.deleteMany({
           where: { userId: userId },
         });
 
-        // 3. (혹시 있다면) 다른 유저 관련 테이블들도 여기에 추가 가능
-
-        // 4. 마지막으로 유저 본인 삭제
+        // 유저 본인 삭제
         return await tx.user.delete({
           where: { id: userId },
         });
@@ -110,7 +106,7 @@ export class AuthService {
     }
   }
 
-  // 관리자용: 모든 유저 목록 조회 (검색 포함)
+  // 관리자 - 유저 목록 조회
   async findAllUsers(keyword?: string) {
     return this.prisma.user.findMany({
       where: keyword
@@ -125,13 +121,13 @@ export class AuthService {
         id: true,
         nickname: true,
         isAdmin: true,
-        isBanned: true, // DB 필드명이 isBanned인지 확인 필요 (프론트는 banned로 쓰고 있음)
+        isBanned: true,
       },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  // 관리자용: 유저 차단 상태 변경
+  // 관리자 - 유저 차단 상태 변경
   async updateBanStatus(userId: string, isBanned: boolean) {
     return this.prisma.user.update({
       where: { id: userId },
@@ -140,14 +136,14 @@ export class AuthService {
   }
 
   async batchUpdateUsers(users: any[]) {
-    // Prisma 트랜잭션을 사용하여 모든 유저 상태를 업데이트
+    // 유저 상태 업데이트
     return this.prisma.$transaction(
       users.map((u) =>
         this.prisma.user.update({
           where: { id: u.id },
           data: {
-            isAdmin: u.role === 'ADMIN', // 프론트의 'ADMIN' 문자열을 DB의 boolean으로
-            isBanned: u.banned,          // 프론트의 banned를 DB의 isBanned로
+            isAdmin: u.role === 'ADMIN',
+            isBanned: u.banned,
           },
         }),
       ),

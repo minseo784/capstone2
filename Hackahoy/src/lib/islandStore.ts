@@ -3,9 +3,9 @@
 export type PinId = 1 | 2 | 3;
 
 export type IslandRecord = {
-  islandId: string; // 예: "pin-2-1"
-  pinId: PinId; // 2 | 3
-  slot: 1 | 2 | 3; // 핀 내부 섬 슬롯
+  islandId: string; 
+  pinId: PinId;
+  slot: 1 | 2 | 3; 
   title: string;
   description: string;
   flag: string;
@@ -14,7 +14,6 @@ export type IslandRecord = {
 };
 
 export type IslandsStore = Record<string, IslandRecord[]>;
-// key: "2" | "3" (pin 1은 고정이라 저장 안 씀)
 
 export const STORE_KEY = "hackahoy:islands";
 
@@ -63,10 +62,8 @@ export function addProblemToPin(
 ): IslandsStore {
   const list = getProblemsByPin(store, pinId);
 
-  // 슬롯 중복 방지
   if (list.some((x) => x.slot === rec.slot)) return store;
 
-  // 최대 3개 제한
   if (list.length >= 3) return store;
 
   return {
@@ -75,8 +72,6 @@ export function addProblemToPin(
   };
 }
 
-// pin이 "점유됐다"의 의미: 그 pin에 최소 1개라도 문제가 생성된 경우
-// pin이 "선택 불가"의 의미: 그 pin이 3개로 꽉 찬 경우
 export function getFullPins(store: IslandsStore): Set<PinId> {
   const s = new Set<PinId>();
   for (const k of Object.keys(store)) {
@@ -88,7 +83,6 @@ export function getFullPins(store: IslandsStore): Set<PinId> {
   return s;
 }
 
-// ✅ pin1은 고정이므로 무조건 FULL 처리
 export function getFullPinsWithFixed(store: IslandsStore): Set<PinId> {
   const s = new Set<PinId>([1]);
   for (const k of Object.keys(store)) {
@@ -100,7 +94,6 @@ export function getFullPinsWithFixed(store: IslandsStore): Set<PinId> {
   return s;
 }
 
-// ✅ 핀 선택 화면에서 1번은 무조건 막아야 하니까 fixed 포함 버전
 export function getOccupiedPinsWithFixed(store: IslandsStore): Set<PinId> {
   const s = new Set<PinId>([1]);
   for (const k of Object.keys(store)) {
@@ -111,7 +104,6 @@ export function getOccupiedPinsWithFixed(store: IslandsStore): Set<PinId> {
   return s;
 }
 
-// challenge에서 islandId로 문제 찾기 (pin-2-1 같은 값)
 export function findProblemByIslandId(
   store: IslandsStore,
   islandId: string

@@ -10,7 +10,6 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <KakaoProvider>
       <AuthProvider>
-        {/* ✅ 어떤 페이지든 항상 상단 네비가 떠야 함 */}
         <AppTopNav />
         {children}
       </AuthProvider>

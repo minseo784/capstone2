@@ -16,14 +16,12 @@ export default function AdminSelectPinPage() {
   const router = useRouter();
   const { user } = useAuth() as any;
   
-  // ✅ 1. 권한 체크 수정 (isAdmin 사용)
   const isAdmin = user?.isAdmin === true;
 
   const [pinCounts, setPinCounts] = useState<{ [key: number]: number }>({
     1: 0, 2: 0, 3: 0
   });
 
-  // ✅ 2. 서버에서 각 핀에 문제가 몇 개 있는지 가져오기
   useEffect(() => {
     if (!isAdmin) return;
 
@@ -34,7 +32,6 @@ export default function AdminSelectPinPage() {
           headers: { Authorization: `Bearer ${token}` }
         });
         
-        // [{ islandId: 2, ... }, { islandId: 2, ... }] 형태를 숫자로 변환
         const counts = { 1: 0, 2: 0, 3: 0 };
         res.data.forEach((p: any) => {
           if (counts[p.islandId] !== undefined) counts[p.islandId]++;
@@ -67,7 +64,6 @@ export default function AdminSelectPinPage() {
       </div>
 
       {PIN_SLOTS.map((pin) => {
-        // ✅ 3. 선택 가능 조건: 1번이 아니고, 해당 핀에 서버 데이터가 3개 미만일 때
         const count = pinCounts[pin.id] || 0;
         const selectable = pin.id !== 1 && count < 3;
 
@@ -77,7 +73,6 @@ export default function AdminSelectPinPage() {
             type="button"
             onClick={() => {
               if (selectable) {
-                // ✅ 4. 이 경로로 이동해야 new/page.tsx가 정상 작동합니다.
                 router.push(`/admin/problems/new?pin=${pin.id}`);
               }
             }}
@@ -96,7 +91,6 @@ export default function AdminSelectPinPage() {
               alt="pin" width={48} height={48} priority
               style={{ imageRendering: "pixelated", display: "block" }}
             />
-            {/* 핀 위에 숫자 표시 (디버깅용) */}
             <span style={{ color: 'white', fontWeight: 'bold', fontSize: '12px' }}>
                {pin.id}번 ({count}/3)
             </span>

@@ -16,7 +16,7 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve", // ⭐ JSX 제대로 인식하게 하는 옵션
+    "jsx": "preserve",
     "baseUrl": "./src",
     "paths": {
       "@/*": [

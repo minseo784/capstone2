@@ -8,7 +8,6 @@ export class DevUserGuard implements CanActivate {
   async canActivate(ctx: ExecutionContext) {
     const req = ctx.switchToHttp().getRequest();
 
-    // ✅ 항상 존재하는 개발용 유저를 하나 보장 (로그인 없이 테스트용)
     const user = await this.prisma.user.upsert({
       where: {
         provider_providerId: { provider: 'KAKAO', providerId: 'dev-user' },
@@ -24,7 +23,7 @@ export class DevUserGuard implements CanActivate {
       },
     });
 
-    req.user = user; // ✅ 여기서 req.user.id 생김
+    req.user = user;
     return true;
   }
 }

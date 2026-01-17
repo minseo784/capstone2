@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-const API_BASE = 'http://localhost:5001';
+const API_BASE = 'http://localhost:5002';
 const SESSION_KEY = 'ctf_session_initialized';
 
 
@@ -20,7 +20,6 @@ export default function Game() {
 
     const router = useRouter();
 
-    //출력 대기시
     useEffect(() => {
         if (!isLoading) {
             setLoadingDots('.');
@@ -36,7 +35,6 @@ export default function Game() {
         return () => clearInterval(interval);
     }, [isLoading]);
 
-    //한글자씩 출력
     useEffect(() => {
         const isInitialized = sessionStorage.getItem(SESSION_KEY);
 
@@ -65,7 +63,6 @@ export default function Game() {
         return () => clearInterval(interval);
     }, [isTyping, fullAnswer]);
 
-    //Gemini 호출
     const sendChat = async () => {
         try {
             setIsLoading(true);

@@ -19,7 +19,6 @@ export default function KakaoProvider({ children }: Props) {
 
   return (
     <>
-      {/* onLoad 없이 Script만 넣기 */}
       <Script
         src="https://developers.kakao.com/sdk/js/kakao.min.js"
         strategy="afterInteractive"

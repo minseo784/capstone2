@@ -135,6 +135,6 @@ app.post("/document", (req, res) => {
 });
 
 //서버 시작
-app.listen(5001, () => {
-    console.log("Backend running: http://localhost:5001");
+app.listen(5002, () => {
+    console.log("Backend running: http://localhost:5002");
 });

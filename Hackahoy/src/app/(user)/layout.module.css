@@ -5,8 +5,7 @@
   overflow: hidden;
 }
 
-/* 배경은 각 페이지(MapView 등)에서 깔 수도 있고,
-   공통 배경이 필요하면 여기서도 깔 수 있음 */
+
 .bg {
   position: absolute;
   inset: 0;

@@ -9,7 +9,6 @@ const islands = [
 ];
 
 async function main() {
-  // 1) islands upsert
   for (const island of islands) {
     await prisma.island.upsert({
       where: { id: island.id },
@@ -18,7 +17,6 @@ async function main() {
     });
   }
 
-  // 2) problem upsert(중복 방지)
   await prisma.problem.upsert({
     where: { id: 1 },
     update: {

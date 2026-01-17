@@ -52,7 +52,6 @@ const FIXED_PIN1_ISLANDS: FixedIslandItem[] = [
   },
 ];
 
-// pin2/3 섬 위치 3개(고정)
 const DEFAULT_SLOTS = [
   { x: 22, y: 62, w: 280, h: 220 },
   { x: 50, y: 52, w: 280, h: 220 },
@@ -76,7 +75,6 @@ export default function IslandSelectPage() {
   const [problems, setProblems] = useState<Problem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // ✅ 백엔드에서 문제 목록 가져오기
   useEffect(() => {
     if (!id) return;
 
@@ -102,7 +100,6 @@ export default function IslandSelectPage() {
   const shipImg = SHIP_BY_LEVEL[level] ?? SHIP_BY_LEVEL[1];
   const islandId = Number(id);
 
-  // ✅ pin1 고정 (유지)
   if (islandId === 1) {
     return (
       <main className={styles.pageRoot}>
@@ -149,7 +146,6 @@ export default function IslandSelectPage() {
     );
   }
 
-  // ✅ 백엔드에서 가져온 문제들 표시 (최대 3개)
   const displayProblems = problems.slice(0, 3);
 
   return (

@@ -24,7 +24,6 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.get<string>('JWT_SECRET')!,
-        // ⬇️ 여기서 expiresIn 타입 에러( StringValue ) 방지
         expiresIn: (config.get<string>('JWT_EXPIRES_IN') ?? '7d') as ms.StringValue,
       }),
     }),

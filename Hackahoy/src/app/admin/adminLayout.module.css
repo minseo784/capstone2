@@ -1,5 +1,5 @@
 .page {
-  position: relative; /* ✅ TopNav absolute 기준 */
+  position: relative; 
   width: 100vw;
   height: 100vh;
   overflow: hidden;

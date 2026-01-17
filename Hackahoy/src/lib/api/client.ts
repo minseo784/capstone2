@@ -28,11 +28,10 @@ export async function apiRequest<T>(
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,
-    credentials: "include", // 필요 없으면 빼도 됨
+    credentials: "include", 
   });
 
   if (!res.ok) {
-    // TODO: 에러 공통 처리 (status별 분기)
     throw new Error(`API Error: ${res.status}`);
   }
 

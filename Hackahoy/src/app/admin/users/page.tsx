@@ -28,7 +28,7 @@ const MOCK_USERS: Row[] = [
 
 export default function AdminUsersPage() {
   const router = useRouter();
-  const { user } = useAuth(); // logout 제거
+  const { user } = useAuth(); 
 
   const [q, setQ] = useState("");
   const [rows, setRows] = useState<Row[]>(MOCK_USERS);

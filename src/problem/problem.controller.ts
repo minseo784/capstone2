@@ -1,27 +1,3 @@
-/*
-import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
-import { ProblemService } from './problem.service';
-
-@Controller()
-export class ProblemController {
-  constructor(private readonly problemService: ProblemService) {}
-
-  // @UseGuards(JwtAuthGuard)
-  @Post('problems/:id/submit')
-  async submitFlag(
-    @Param('id') id: string,
-    @Body() body: { flag: string },
-    @Req() req: any,
-  ) {
-    const userId = {req.user.id}; // JwtStrategy validate()가 user를 반환하니까 여기 id 있음
-    return this.problemService.submitFlag({
-      problemId: Number(id),
-      userId,
-      flag: body.flag ?? '',
-    });
-  }
-}
-  */
 import { Body, Controller, Param, Post, Req, UseGuards, Get, ParseIntPipe } from '@nestjs/common';
 import { ProblemService } from './problem.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';

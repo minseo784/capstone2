@@ -6,7 +6,6 @@ export class AdminGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
 
-    // JWTStrategy가 넣어준 user 정보에 isAdmin이 true인지 확인
     if (user && user.isAdmin) {
       return true;
     }

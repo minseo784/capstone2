@@ -3,9 +3,8 @@ import axios from "axios";
 
 const API_URL = 'http://localhost:4000';
 
-// ✅ 헬퍼 함수: 로컬 스토리지에서 토큰 가져오기
 const getAuthHeader = () => {
-  const token = localStorage.getItem('accessToken'); // 저장된 토큰 키 확인
+  const token = localStorage.getItem('accessToken'); 
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
@@ -41,17 +40,15 @@ export async function getIslandProblems(islandId: number) {
 
 export const getProblem = async (problemId: number) => {
   const response = await axios.get(`${API_URL}/problems/${problemId}`, {
-    headers: getAuthHeader(), // ✅ 헤더에 토큰 추가
+    headers: getAuthHeader(),
   });
   return response.data;
 };
 
-// 2. 정답 제출하기
 export const submitFlag = async (problemId: number, flag: string) => {
-  // ✅ 주소 수정: /problems/:id/submit 형태 (id가 중간에 들어감)
   const response = await axios.post(
     `${API_URL}/problems/${problemId}/submit`, 
-    { flag }, // ✅ 바디 수정: 백엔드에서 @Body('flag')로 받으므로 flag만 보냄
+    { flag }, 
     {
       headers: getAuthHeader(),
     }

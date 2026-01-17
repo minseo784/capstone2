@@ -10,7 +10,7 @@
 }
 
 .pinLocked {
-  opacity: 0.55; /* 잠김 느낌만 */
+  opacity: 0.55; 
 }
 
 .pinImage {

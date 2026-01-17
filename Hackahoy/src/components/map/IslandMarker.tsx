@@ -31,17 +31,17 @@ export default function IslandMarker({ island }: { island: Island }) {
         border: "none",
         padding: 0,
         cursor: "pointer",
-        lineHeight: 0, // ✅ 이미지 아래 baseline 여백 방지
+        lineHeight: 0, 
       }}
     >
       <Image
-        src={island.iconImage} // ✅ /assets/icons/main-marker.png 로 통일된 값
+        src={island.iconImage} 
         alt={island.name}
-        width={48} // ✅ 홈과 동일하게 (필요 시 64로)
+        width={48} 
         height={48}
         priority
         style={{
-          imageRendering: "pixelated", // ✅ 픽셀 느낌 유지
+          imageRendering: "pixelated",
         }}
       />
     </button>

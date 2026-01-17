@@ -8,26 +8,23 @@ import styles from "./Mypage.module.css";
 import axios from "axios";
 
 type UserShape = {
-  id?: string;         // 우리 DB 내부 키
+  id?: string;     
   nickname?: string;
   levelNum?: number;
-  provider?: string;   // ✅ 서버 select와 일치시킴
-  providerId?: string; // ✅ 사용자가 볼 ID 값
+  provider?: string;   
+  providerId?: string; 
 };
 
 export default function MyPage() {
   const router = useRouter();
-  const { user, logout } = useAuth(); // AuthContext에서 가져오는 user 객체
+  const { user, logout } = useAuth(); 
 
-  // user 객체의 타입을 UserShape로 안전하게 캐스팅
   const safeUser = useMemo(() => (user as any) ?? {}, [user]);
   
   const [nickname, setNickname] = useState("");
   const level = safeUser.levelNum ?? 1;
 
   const shipImgSrc = useMemo(() => {
-    // 만약 배 이미지가 5번까지만 있다면 Math.min(level, 5)를 사용하세요.
-    // 여기서는 말씀하신 대로 level 숫자를 그대로 파일명에 꽂습니다.
     const shipNumber = level > 0 ? level : 1; 
     return `/assets/ships/ship-${shipNumber}.png`;
   }, [level]);
@@ -37,7 +34,6 @@ export default function MyPage() {
     setNickname(safeUser.nickname ?? "PLAYER");
   }, [user, safeUser.nickname]);
 
-  // 비로그인 → 홈(MapView)로 보내서 거기서 로그인 모달 사용
   useEffect(() => {
     if (user) return;
     router.replace("/");
@@ -55,7 +51,7 @@ export default function MyPage() {
   
 
   const handleLogout = () => {
-    logout(); // logout은 async가 아니므로 await 제거
+    logout(); 
     router.push("/");
   };
 
@@ -66,15 +62,13 @@ export default function MyPage() {
 
       await axios.post(
         "http://localhost:4000/auth/update-nickname",
-        { nickname: nickname }, // 현재 input에 입력된 nickname 상태값
+        { nickname: nickname }, 
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
 
       alert("닉네임이 성공적으로 변경되었습니다! 새로고침 시 반영됩니다.");
-      // 좀 더 완벽하게 하려면 여기서 window.location.reload()를 해주거나
-      // AuthContext의 user 상태를 업데이트하면 좋습니다.
     } catch (error) {
       console.error("닉네임 수정 실패:", error);
       alert("닉네임 수정 중 오류가 발생했습니다.");
@@ -89,7 +83,6 @@ export default function MyPage() {
       const token = localStorage.getItem("accessToken");
       if (!token) return;
 
-      // 1. 백엔드 탈퇴 API 호출
       await axios.post(
         "http://localhost:4000/auth/unsubscribe",
         {},
@@ -100,7 +93,6 @@ export default function MyPage() {
 
       alert("탈퇴 처리가 완료되었습니다. 이용해 주셔서 감사합니다.");
 
-      // 2. 클라이언트 로그아웃 처리 및 홈으로 이동
       handleLogout(); 
     } catch (error) {
       console.error("탈퇴 처리 실패:", error);
@@ -138,7 +130,7 @@ export default function MyPage() {
               <p className={styles.fieldLabel}>SOCIAL LOGIN</p>
               <input
                 className={`${styles.input} ${styles.inputReadOnly}`}
-                value={displayProvider} // ✅ 수정됨
+                value={displayProvider} 
                 readOnly
               />
             </div>
@@ -147,7 +139,7 @@ export default function MyPage() {
               <p className={styles.fieldLabel}>ID</p>
               <input
                 className={`${styles.input} ${styles.inputReadOnly}`}
-                value={displayId} // ✅ 수정됨 (이제 providerId가 보입니다)
+                value={displayId}
                 readOnly
               />
             </div>

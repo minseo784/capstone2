@@ -16,13 +16,13 @@ type Mode = "play" | "select";
 
 export default function CreateSlotsLayer({
   mode = "play",
-  occupiedPins: storeOccupiedPins, // 기존 로컬스토리지 기반 데이터
-  islands = [], // ✅ MapView에서 넘겨준 DB 데이터 (추가)
+  occupiedPins: storeOccupiedPins, 
+  islands = [],
   onSelectEmptyPin,
 }: {
   mode?: Mode;
   occupiedPins?: Set<PinId>;
-  islands?: any[]; // ✅ 타입 추가
+  islands?: any[];
   onSelectEmptyPin?: (pinId: PinId) => void;
 }) {
   const router = useRouter();
@@ -30,11 +30,8 @@ export default function CreateSlotsLayer({
 
   const isAdmin = user?.role === "ADMIN";
 
-  // ✅ [수정] DB 데이터(islands)에 해당 pinId가 있는지 확인하는 로직 추가
   const isOccupied = (id: PinId) => {
-    // 1. DB 데이터에 이 pinId(islandId)를 가진 섬이 있는지 확인
     const dbOccupied = islands.some(isl => isl.id === id);
-    // 2. 혹은 기존 로컬스토리지(storeOccupiedPins)에 있는지 확인
     const localOccupied = storeOccupiedPins?.has(id) ?? false;
     
     return dbOccupied || localOccupied;
@@ -51,13 +48,11 @@ export default function CreateSlotsLayer({
   return (
     <div style={{ position: "absolute", inset: 0, zIndex: 20 }}>
       {PIN_POS.map((pin) => {
-        const occupied = isOccupied(pin.id); // ✅ 수정된 판별 로직 사용
+        const occupied = isOccupied(pin.id);
 
-        // ... (나머지 clickable, title, onClick 로직은 동일)
         const clickable =
           mode === "play" ? occupied : isAdmin && !occupied && pin.id !== 1;
 
-        // ... (이하 동일)
         return (
           <div key={pin.id} style={{ position: "absolute", left: pin.left, top: pin.top, transform: "translate(-50%, -50%)" }}>
             <button

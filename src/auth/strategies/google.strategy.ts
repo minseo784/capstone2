@@ -34,14 +34,12 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
         callbackURL: callbackURL!,
         scope: ['profile', 'email'],
 
-        // ✅ 강제 (구글 표준)
         authorizationURL: 'https://accounts.google.com/o/oauth2/v2/auth',
         tokenURL: 'https://oauth2.googleapis.com/token',
     });
 
   }
 
-  // validate()가 끝나면, 이 값이 req.user 로 들어감
   async validate(
     _accessToken: string,
     _refreshToken: string,
