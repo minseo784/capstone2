@@ -9,11 +9,12 @@ import { IslandsModule } from './islands/islands.module';
 import { ProblemModule } from './problem/problem.module';
 import { AdminController } from './admin/admin.controller';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
+import { ChallengeModule } from './challenges/challenges.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
-    AuthModule, PrismaModule, IslandsModule, ProblemModule
+    AuthModule, PrismaModule, IslandsModule, ProblemModule, ChallengeModule
   ],
   controllers: [AppController, AdminController],
   providers: [
