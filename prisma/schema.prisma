@@ -16,6 +16,11 @@ enum AuthProvider {
   NAVER
 }
 
+enum ProblemCategory {
+  WEB
+  AI
+}
+
 model User {
   id         String       @id @default(cuid())
   provider   AuthProvider
@@ -62,6 +67,7 @@ model Problem {
   hint         String
   correctFlag  String
   serverLink   String?  // ✅ already exists (diagram red)
+  category  ProblemCategory  @default(WEB)
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
