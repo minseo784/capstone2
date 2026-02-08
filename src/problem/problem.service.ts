@@ -18,20 +18,27 @@ export class ProblemService {
     });
     if (!problem) throw new NotFoundException('problem not found');
 
-    await this.prisma.submitFlag.create({
+    const isCorrect = trimmed === problem.correctFlag;
+
+    // ✅ 제출 로그에 정답 여부까지 저장
+    const submit = await this.prisma.submitFlag.create({
       data: {
         userId,
         problemId,
-        flag: trimmed,
+        submittedFlag: trimmed,
+        isCorrect, // ✅ 추가
       },
+      select: { id: true, isCorrect: true, submittedAt: true },
     });
 
-    const correct = trimmed === problem.correctFlag;
-    if (!correct) return { correct: false };
+    if (!submit.isCorrect) {
+      return { correct: false };
+    }
 
-    // 중복 레벨업 방지
+    // ✅ 이미 풀었는지 확인 (중복 레벨업 방지)
     const already = await this.prisma.solvedHistory.findUnique({
       where: { userId_problemId: { userId, problemId } },
+      select: { userId: true },
     });
     if (already) return { correct: true, alreadySolved: true };
 
@@ -44,20 +51,14 @@ export class ProblemService {
     });
 
     let newLevel = 1;
-    while (totalSolvedCount >= Math.pow(2, newLevel) - 1) {
-      newLevel++;
-    }
-    console.log("업데이트 시도 유저 ID:", userId);
+    while (totalSolvedCount >= Math.pow(2, newLevel) - 1) newLevel++;
 
-    // 유저 레벨 업데이트
     const updated = await this.prisma.user.update({
       where: { id: userId },
       data: { levelNum: newLevel },
       select: { levelNum: true },
     });
 
-    console.log("DB 업데이트 결과:", updated);
-    
     return { correct: true, alreadySolved: false, newLevel: updated.levelNum };
   }
 

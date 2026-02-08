@@ -1,13 +1,25 @@
-import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
-import { ChallengesService } from './challenges.service';
+import { Controller, Get, Query, Req, BadRequestException } from "@nestjs/common";
+import type { Request } from "express";              // ✅ type-only import
+import { ChallengesService } from "./challenges.service";
+import type { ChallengeTab } from "./challenges.service"; // ✅ type-only import
 
-@Controller('challenges') // URL이 /challenges 로 시작함
+@Controller("challenges")
 export class ChallengesController {
   constructor(private readonly challengesService: ChallengesService) {}
 
-  @Get('list') // GET /challenges/list?status=SOLVED
-  async getChallengeList(@Query('status') status: string, @Req() req: any) {
-    const userId = req.user.id; // 인증 로직에 맞게 수정 필요
-    return this.challengesService.getChallengeList(userId, status);
+  @Get()
+  async getChallenges(@Req() req: Request, @Query("tab") tab?: ChallengeTab) {
+    const safeTab = (tab ?? "all") as ChallengeTab;
+
+    if (!["all", "solved", "unsolved"].includes(safeTab)) {
+      throw new BadRequestException("tab must be one of: all | solved | unsolved");
+    }
+
+    const user = (req as any).user;
+    const userId: string | undefined = user?.id ?? user?.userId;
+    if (!userId) throw new BadRequestException("Unauthorized: userId missing");
+
+    const data = await this.challengesService.getChallengeList(userId, safeTab);
+    return { success: true, data };
   }
 }
