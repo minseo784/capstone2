@@ -1,14 +1,45 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class ProblemService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // 사용자의 문제 목록 조회 (풀이 여부 포함)
+  async getProblemsForUser(userId: string) {
+    const problems = await this.prisma.problem.findMany({
+      orderBy: { id: 'asc' },
+      select: {
+        id: true,
+        title: true,
+        // DB 스키마에 category 필드가 없다면 아래 줄은 주석 처리하세요.
+        // category: true,
+      },
+    });
 
-  async submitFlag(params: { problemId: number; userId: string; flag: string }) {
+    const solvedHistories = await this.prisma.solvedHistory.findMany({
+      where: { userId },
+      select: { problemId: true },
+    });
+
+    const solvedProblemIds = solvedHistories.map((h) => h.problemId);
+
+    return problems.map((p) => ({
+      ...p,
+      solved: solvedProblemIds.includes(p.id),
+    }));
+  }
+
+  async submitFlag(params: {
+    problemId: number;
+    userId: string;
+    flag: string;
+  }) {
     const { problemId, userId, flag } = params;
-
     const trimmed = (flag ?? '').trim();
     if (!trimmed) throw new BadRequestException('flag is required');
 
@@ -20,36 +51,22 @@ export class ProblemService {
 
     const isCorrect = trimmed === problem.correctFlag;
 
-    // ✅ 제출 로그에 정답 여부까지 저장
     const submit = await this.prisma.submitFlag.create({
-      data: {
-        userId,
-        problemId,
-        submittedFlag: trimmed,
-        isCorrect, // ✅ 추가
-      },
-      select: { id: true, isCorrect: true, submittedAt: true },
+      data: { userId, problemId, submittedFlag: trimmed, isCorrect },
     });
 
-    if (!submit.isCorrect) {
-      return { correct: false };
-    }
+    if (!submit.isCorrect) return { correct: false };
 
-    // ✅ 이미 풀었는지 확인 (중복 레벨업 방지)
     const already = await this.prisma.solvedHistory.findUnique({
       where: { userId_problemId: { userId, problemId } },
-      select: { userId: true },
     });
     if (already) return { correct: true, alreadySolved: true };
 
-    await this.prisma.solvedHistory.create({
-      data: { userId, problemId },
-    });
+    await this.prisma.solvedHistory.create({ data: { userId, problemId } });
 
     const totalSolvedCount = await this.prisma.solvedHistory.count({
       where: { userId },
     });
-
     let newLevel = 1;
     while (totalSolvedCount >= Math.pow(2, newLevel) - 1) newLevel++;
 
@@ -72,9 +89,14 @@ export class ProblemService {
         description: true,
         hint: true,
         serverLink: true,
-        createdAt: true,
-        updatedAt: true,
       },
+    });
+  }
+
+  async listProblems() {
+    return this.prisma.problem.findMany({
+      orderBy: { id: 'asc' },
+      include: { island: true },
     });
   }
 
@@ -86,19 +108,8 @@ export class ProblemService {
         correctFlag: data.correctFlag,
         serverLink: data.serverLink,
         hint: data.hint,
-        island: {
-          connect: { id: data.islandId || 1 }
-        }
+        island: { connect: { id: data.islandId || 1 } },
       },
     });
   }
-
-  // 관리자 - 문제 목록 조회
-  async listProblems() {
-    return this.prisma.problem.findMany({
-      orderBy: { id: 'asc' },
-      include: { island: true },
-    });
-  }
-
 }
