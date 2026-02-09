@@ -8,7 +8,7 @@
   justify-content: center;
 
   background-color: #005c9a;
-  background-image: url("/assets/backgrounds/main-map.png");
+  background-image: url('/assets/backgrounds/main-map.png');
   background-repeat: no-repeat;
   background-position: center;
   background-size: 80% auto;
@@ -26,7 +26,7 @@
 }
 
 .topBarButton {
-  position: absolute; 
+  position: absolute;
   top: 0;
 
   pointer-events: auto;
@@ -36,7 +36,17 @@
   cursor: pointer;
   display: block;
 }
-
+/* 버튼 자체 스타일 */
+.challengeButton {
+  background: transparent; /* 배경을 투명하게 설정 */
+  border: none; /* 테두리 제거 */
+  padding: 0; /* 안쪽 여백 제거 */
+  cursor: pointer;
+  outline: none;
+  display: block; /* 이미지 정렬을 위해 블록화 */
+  margin-top: 20px; /* 레벨 텍스트와의 간격 */
+  transition: transform 0.1s ease;
+}
 .homeButton {
   right: calc(10vw + 6px);
 }

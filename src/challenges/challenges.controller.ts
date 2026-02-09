@@ -1,25 +1,27 @@
-import { Controller, Get, Query, Req, BadRequestException } from "@nestjs/common";
-import type { Request } from "express";              // ✅ type-only import
+// src/challenges/challenges.controller.ts
+import { Controller, Get, Req, UseGuards, UnauthorizedException } from "@nestjs/common";
+import type { Request } from "express";
 import { ChallengesService } from "./challenges.service";
-import type { ChallengeTab } from "./challenges.service"; // ✅ type-only import
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
-@Controller("challenges")
+// import { JwtAuthGuard } from "../auth/jwt-auth.guard"; // 본인의 가드 경로에 맞게 수정
+
+@Controller("problem")
 export class ChallengesController {
   constructor(private readonly challengesService: ChallengesService) {}
 
-  @Get()
-  async getChallenges(@Req() req: Request, @Query("tab") tab?: ChallengeTab) {
-    const safeTab = (tab ?? "all") as ChallengeTab;
+  @UseGuards(JwtAuthGuard) // 인증이 필요하다면 주석 해제
+  @Get("user-list")
+  async getChallenges(@Req() req: Request) {
+    // 가드에서 넣어준 유저 정보 확인 (보통 req.user에 들어있음)
+    const user = (req as any).user;
+    const userId = user?.id || user?.userId;
 
-    if (!["all", "solved", "unsolved"].includes(safeTab)) {
-      throw new BadRequestException("tab must be one of: all | solved | unsolved");
+    if (!userId) {
+      throw new UnauthorizedException("로그인이 필요한 서비스입니다.");
     }
 
-    const user = (req as any).user;
-    const userId: string | undefined = user?.id ?? user?.userId;
-    if (!userId) throw new BadRequestException("Unauthorized: userId missing");
-
-    const data = await this.challengesService.getChallengeList(userId, safeTab);
-    return { success: true, data };
+    // 서비스에서 가공된 깔끔한 배열을 그대로 반환
+    return await this.challengesService.getChallengeList(userId);
   }
 }

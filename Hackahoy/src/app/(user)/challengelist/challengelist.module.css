@@ -1,0 +1,137 @@
+.pageRoot {
+  position: relative;
+  width: 100vw;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #005c9a;
+  background-image: url('/assets/backgrounds/main-map.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 80% auto;
+}
+
+.card {
+  position: relative;
+  z-index: 10;
+  width: min(780px, 92vw);
+  height: min(460px, 72vh);
+  background-color: #0c2237;
+  border: 8px solid #b06320;
+  border-radius: 32px;
+  overflow: hidden;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  padding: 30px;
+  box-sizing: border-box;
+}
+
+.filterBarContainer {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 25px;
+  flex-shrink: 0;
+}
+
+.filterOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+}
+
+.filterZone {
+  flex: 1;
+  cursor: pointer;
+  color: transparent;
+  user-select: none;
+}
+
+.listScroll {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+  /* 아이템 개수와 상관없이 위에서부터 정렬하여 박스 크기 고정 */
+  justify-content: flex-start;
+  padding: 10px 0;
+}
+
+.challengeItem {
+  height: 60px; /* 모든 개별 박스 높이 고정 */
+  width: 100%;
+  background-color: rgba(176, 99, 32, 0.2);
+  border: 4px solid #b06320;
+  border-radius: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 40px;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: background-color 0.2s;
+  flex-shrink: 0; /* 부모 크기에 따라 줄어들지 않음 */
+}
+
+.challengeItem:hover {
+  background-color: rgba(176, 99, 32, 0.35);
+}
+
+.challengeTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ff9f34;
+}
+
+.statusIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.footer {
+  width: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+  min-height: 50px;
+  flex-shrink: 0;
+}
+
+.mypageBtn {
+  position: absolute;
+  left: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.pagination {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.arrowBtn {
+  background: none;
+  border: none;
+  color: #ff9f34;
+  font-size: 2.5rem;
+  cursor: pointer;
+  padding: 0 10px;
+}
+
+.arrowBtn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
