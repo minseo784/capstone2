@@ -13,6 +13,7 @@ import { KakaoStrategy } from './strategies/kakao.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { NaverStrategy } from './strategies/naver.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { EmailService } from '../email.service';
 
 @Module({
   imports: [
@@ -29,7 +30,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, KakaoStrategy, GoogleStrategy, NaverStrategy, JwtStrategy],
+  providers: [AuthService, KakaoStrategy, GoogleStrategy, NaverStrategy, JwtStrategy, EmailService],
   exports: [AuthService],
 })
 export class AuthModule {}

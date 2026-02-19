@@ -10,15 +10,41 @@ import { ProblemModule } from './problem/problem.module';
 import { AdminController } from './admin/admin.controller';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { ChallengeModule } from './challenges/challenges.module';
+import { EmailService } from './email.service';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
+import { ReportService } from './report.service';
+import { APP_GUARD } from '@nestjs/core';
+import { LoginThrottlerGuard } from './login-throttler.guard';
+import { BanModule } from './ban/ban.module';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
-    AuthModule, PrismaModule, IslandsModule, ProblemModule, ChallengeModule
+    ThrottlerModule.forRoot([
+    {
+      name: 'default',
+      ttl: 300000, // 5분
+      limit: 600,  // 일반 요청
+    },
+    {
+      name: 'login',
+      ttl: 300000, // 5분
+      limit: 20,   // 👈 로그인 시도는 20번으로 제한!
+    }
+  ]),
+    AuthModule, PrismaModule, IslandsModule, ProblemModule, ChallengeModule, BanModule
   ],
   controllers: [AppController, AdminController],
   providers: [
     AppService,
+    EmailService,
+    ReportService,
+    {
+      provide: APP_GUARD,
+      useClass: LoginThrottlerGuard,  
+    },
     // 보안 가드 로직
     {
       provide: APP_INTERCEPTOR,

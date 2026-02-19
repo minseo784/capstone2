@@ -1,20 +1,19 @@
-import { Body, Controller, Post, UseGuards, Get } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
 import { ProblemService } from './problem.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AdminGuard } from '../auth/guards/admin.guard';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
-@UseGuards(JwtAuthGuard, AdminGuard)
-@Controller('admin')
+@UseGuards(JwtAuthGuard)
+@Controller('admin/problems') // 프론트엔드 API 경로에 맞춤
 export class ProblemAdminController {
   constructor(private readonly problemService: ProblemService) {}
 
-  @Post('problems')
-  create(@Body() body: { islandId: number; title: string; description: string; hint: string; correctFlag: string }) {
-    return this.problemService.createProblem(body);
+  @Get()
+  async listProblems() {
+    return this.problemService.listProblems();
   }
 
-  @Get('problems')
-  list() {
-    return this.problemService.listProblems();
+  @Post()
+  async createProblem(@Body() data: any) {
+    return this.problemService.createProblem(data);
   }
 }

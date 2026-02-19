@@ -4,8 +4,10 @@ import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { DevUserGuard } from './dev-user.guard';
+import { LoginThrottlerGuard } from '.././login-throttler.guard';
 
 @Controller('auth')
+@UseGuards(LoginThrottlerGuard)
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
@@ -15,6 +17,7 @@ export class AuthController {
     return this.auth.getMyProfile(req.user.id);
   }
 
+  // @UseGuards(LoginThrottlerGuard)
   @Post('login')
   async login(@Body() body: { oauthProvider: 'kakao'|'google'|'naver'; oauthToken: string }) {
     const { oauthProvider, oauthToken } = body;
@@ -46,7 +49,7 @@ export class AuthController {
   }
 
   @Get('me')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(LoginThrottlerGuard, JwtAuthGuard)
   me(@Req() req: any) {
     return req.user;
   }
@@ -72,27 +75,27 @@ export class AuthController {
   @Get('kakao')
   kakaoLogin() {}
 
-@UseGuards(AuthGuard('kakao'))
-@Get('kakao/callback')
-async kakaoCallback(@Req() req: any, @Res() res: any) {
-  try {
-    const kakao = req.user;
-    const user = await this.auth.upsertSocialUser({
-      provider: 'KAKAO',
-      providerId: String(kakao.kakaoId),
-      nickname: kakao.profile?.username ?? 'kakao-user',
-    });
+  @UseGuards(AuthGuard('kakao'))
+  @Get('kakao/callback')
+  async kakaoCallback(@Req() req: any, @Res() res: any) {
+    try {
+      const kakao = req.user;
+      const user = await this.auth.upsertSocialUser({
+        provider: 'KAKAO',
+        providerId: String(kakao.kakaoId),
+        nickname: kakao.profile?.username ?? 'kakao-user',
+      });
 
-    const token = this.auth.signToken({ userId: user.id, provider: 'kakao' });
-    return res.redirect(`http://localhost:3000/auth/kakao/callback?token=${token}`);
+      const token = this.auth.signToken({ userId: user.id, provider: 'kakao' });
+      return res.redirect(`http://localhost:3000/auth/kakao/callback?token=${token}`);
 
-  } catch (error) {
-    if (error instanceof ForbiddenException) {
-      return res.redirect(`http://localhost:3000/auth/kakao/callback?error=banned`);
+    } catch (error) {
+      if (error instanceof ForbiddenException) {
+        return res.redirect(`http://localhost:3000/auth/kakao/callback?error=banned`);
+      }
+      return res.redirect(`http://localhost:3000/auth/kakao/callback?error=unknown`);
     }
-    return res.redirect(`http://localhost:3000/auth/kakao/callback?error=unknown`);
   }
-}
 
 // GOOGLE
   @UseGuards(AuthGuard('google'))

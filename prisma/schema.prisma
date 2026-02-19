@@ -1,13 +1,117 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+generator client {
+  provider = "prisma-client-js"
+}
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
+model User {
+  id         String          @id @default(cuid())
+  provider   AuthProvider
+  providerId String
+  nickname   String
+  levelNum   Int             @default(1)
+  isAdmin    Boolean         @default(false)
+  isBanned   Boolean         @default(false)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  email      String?
+  banHistory BanHistory[]
+  solved     SolvedHistory[]
+  submits    SubmitFlag[]
+  level      Level           @relation(fields: [levelNum], references: [levelNum])
+  events     UserEvent[]
+
+  @@unique([provider, providerId])
+}
+
+model Level {
+  levelNum  Int    @id
+  shipImage String
+  users     User[]
+}
+
+model Island {
+  id       Int       @id @default(autoincrement())
+  image    String
+  problems Problem[]
+}
+
+model Problem {
+  id          Int             @id @default(autoincrement())
+  islandId    Int
+  title       String
+  description String
+  hint        String
+  correctFlag String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  serverLink  String?
+  category    ProblemCategory @default(WEB)
+  island      Island          @relation(fields: [islandId], references: [id])
+  solved      SolvedHistory[]
+  submits     SubmitFlag[]
+  events      UserEvent[]
+}
+
+model SubmitFlag {
+  id            BigInt   @id @default(autoincrement())
+  userId        String
+  problemId     Int
+  submittedFlag String
+  submittedAt   DateTime @default(now())
+  isCorrect     Boolean
+  problem       Problem  @relation(fields: [problemId], references: [id])
+  user          User     @relation(fields: [userId], references: [id])
+}
+
+model SolvedHistory {
+  userId    String
+  problemId Int
+  solvedAt  DateTime @default(now())
+  problem   Problem  @relation(fields: [problemId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@id([userId, problemId])
+}
+
+model UserEvent {
+  id        BigInt   @id @default(autoincrement())
+  userId    String
+  problemId Int
+  type      String
+  payload   String
+  createdAt DateTime @default(now())
+  problem   Problem  @relation(fields: [problemId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model BanRule {
+  id        BigInt       @id @default(autoincrement())
+  name      String
+  condition String
+  threshold Int
+  enabled   Boolean      @default(true)
+  history   BanHistory[]
+}
+
+model BanHistory {
+  id         BigInt    @id @default(autoincrement())
+  userId     String?
+  ruleId     BigInt
+  reason     String
+  bannedAt   DateTime  @default(now())
+  releasedAt DateTime?
+  rule       BanRule   @relation(fields: [ruleId], references: [id])
+  user       User?      @relation(fields: [userId], references: [id])
+}
+
+model BanReport {
+  id        BigInt   @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  summary   String
 }
 
 enum AuthProvider {
@@ -19,128 +123,4 @@ enum AuthProvider {
 enum ProblemCategory {
   WEB
   AI
-}
-
-model User {
-  id         String       @id @default(cuid())
-  provider   AuthProvider
-  providerId String
-
-  nickname   String
-  email      String?      // ✅ added (diagram red)
-
-  levelNum   Int          @default(1)
-  isAdmin    Boolean      @default(false)
-  isBanned   Boolean      @default(false)
-
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-
-  level      Level        @relation(fields: [levelNum], references: [levelNum])
-
-  solved     SolvedHistory[]
-  submits    SubmitFlag[]
-  events     UserEvent[]  // ✅ added relation
-
-  banHistory BanHistory[] // ✅ added relation
-
-  @@unique([provider, providerId])
-}
-
-model Level {
-  levelNum   Int     @id
-  shipImage  String
-  users      User[]
-}
-
-model Island {
-  id        Int       @id @default(autoincrement())
-  image     String
-  problems  Problem[]
-}
-
-model Problem {
-  id           Int      @id @default(autoincrement())
-  islandId     Int
-  title        String
-  description  String
-  hint         String
-  correctFlag  String
-  serverLink   String?  // ✅ already exists (diagram red)
-  category  ProblemCategory  @default(WEB)
-
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  island       Island   @relation(fields: [islandId], references: [id])
-
-  solved       SolvedHistory[]
-  submits      SubmitFlag[]
-  events       UserEvent[] // ✅ added relation
-}
-
-model SubmitFlag {
-  id           BigInt   @id @default(autoincrement())
-  userId       String
-  problemId    Int
-
-  submittedFlag String  // ✅ renamed from flag (diagram: submittedFlag)
-  isCorrect    Boolean  // ✅ added (NN)
-  submittedAt  DateTime @default(now()) // ✅ added (NN)
-
-  user         User     @relation(fields: [userId], references: [id])
-  problem      Problem  @relation(fields: [problemId], references: [id])
-}
-
-model SolvedHistory {
-  userId    String
-  problemId Int
-  solvedAt  DateTime @default(now())
-
-  user      User     @relation(fields: [userId], references: [id])
-  problem   Problem  @relation(fields: [problemId], references: [id])
-
-  @@id([userId, problemId])
-}
-
-model UserEvent {
-  id        BigInt   @id @default(autoincrement()) // ✅ eventId (diagram)
-  userId    String
-  problemId Int
-
-  type      String   // varchar(30)
-  payload   String   // text
-  createdAt DateTime @default(now())
-
-  user      User     @relation(fields: [userId], references: [id])
-  problem   Problem  @relation(fields: [problemId], references: [id])
-}
-
-model BanRule {
-  id        BigInt   @id @default(autoincrement()) // ✅ ruleId (diagram)
-  name      String   // varchar(100)
-  condition String   // text
-  threshold Int
-  enabled   Boolean  @default(true)
-
-  history   BanHistory[]
-}
-
-model BanHistory {
-  id         BigInt   @id @default(autoincrement()) // ✅ banId (diagram)
-  userId     String
-  ruleId     BigInt
-
-  reason     String   // text
-  bannedAt   DateTime @default(now())
-  releasedAt DateTime?
-
-  user       User     @relation(fields: [userId], references: [id])
-  rule       BanRule  @relation(fields: [ruleId], references: [id])
-}
-
-model BanReport {
-  id        BigInt   @id @default(autoincrement()) // ✅ reportId (diagram)
-  createdAt DateTime @default(now())
-  summary   String   // text
 }

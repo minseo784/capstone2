@@ -4,20 +4,22 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { ProblemCategory } from '@prisma/client';
 
 @Injectable()
 export class ProblemService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // 사용자의 문제 목록 조회 (풀이 여부 포함)
-  async getProblemsForUser(userId: string) {
+  // 1. 사용자의 문제 목록 조회 (섬 연동 + 카테고리 필터링)
+  async getProblemsForUser(userId: string, islandId?: number) {
     const problems = await this.prisma.problem.findMany({
+      where: islandId ? { islandId: islandId } : {},
       orderBy: { id: 'asc' },
       select: {
         id: true,
+        islandId: true,
         title: true,
-        // DB 스키마에 category 필드가 없다면 아래 줄은 주석 처리하세요.
-        // category: true,
+        category: true,
       },
     });
 
@@ -34,6 +36,7 @@ export class ProblemService {
     }));
   }
 
+  // 2. 플래그 제출 및 정답 확인 (submitFlag)
   async submitFlag(params: {
     problemId: number;
     userId: string;
@@ -51,22 +54,27 @@ export class ProblemService {
 
     const isCorrect = trimmed === problem.correctFlag;
 
+    // 제출 기록 저장
     const submit = await this.prisma.submitFlag.create({
       data: { userId, problemId, submittedFlag: trimmed, isCorrect },
     });
 
     if (!submit.isCorrect) return { correct: false };
 
+    // 이미 푼 문제인지 확인
     const already = await this.prisma.solvedHistory.findUnique({
       where: { userId_problemId: { userId, problemId } },
     });
     if (already) return { correct: true, alreadySolved: true };
 
+    // 풀이 이력 생성
     await this.prisma.solvedHistory.create({ data: { userId, problemId } });
 
+    // 유저 레벨업 로직 (해결한 문제 수 기반)
     const totalSolvedCount = await this.prisma.solvedHistory.count({
       where: { userId },
     });
+    
     let newLevel = 1;
     while (totalSolvedCount >= Math.pow(2, newLevel) - 1) newLevel++;
 
@@ -79,6 +87,7 @@ export class ProblemService {
     return { correct: true, alreadySolved: false, newLevel: updated.levelNum };
   }
 
+  // 3. 개별 문제 상세 조회
   async getProblem(problemId: number) {
     return this.prisma.problem.findUnique({
       where: { id: problemId },
@@ -87,12 +96,14 @@ export class ProblemService {
         islandId: true,
         title: true,
         description: true,
+        category: true,
         hint: true,
         serverLink: true,
       },
     });
   }
 
+  // 4. 문제 전체 리스트 조회 (관리자용 등)
   async listProblems() {
     return this.prisma.problem.findMany({
       orderBy: { id: 'asc' },
@@ -100,15 +111,19 @@ export class ProblemService {
     });
   }
 
+  // 5. 신규 문제 생성 (카테고리 및 섬 연결)
   async createProblem(data: any) {
     return this.prisma.problem.create({
       data: {
         title: data.title,
         description: data.description,
+        category: data.category as ProblemCategory,
         correctFlag: data.correctFlag,
         serverLink: data.serverLink,
-        hint: data.hint,
-        island: { connect: { id: data.islandId || 1 } },
+        hint: data.hint || '힌트가 없습니다.',
+        island: { 
+          connect: { id: data.islandId ? Number(data.islandId) : 1 } 
+        },
       },
     });
   }
