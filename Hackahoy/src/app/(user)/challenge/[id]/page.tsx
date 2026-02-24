@@ -172,7 +172,26 @@ export default function ChallengePage() {
             <button
               type="button"
               className={styles.hintBtn}
-              onClick={() => setHintOpen(true)}
+              onClick={async () => {
+                try {
+                  // 1. 서버에 로그 쏘기 (토큰을 헤더에 포함)
+                  // 로컬 스토리지가 아닌 쿠키나 다른 곳에 저장하신다면 그에 맞춰 토큰을 가져와야 합니다.
+                  const token = localStorage.getItem('accessToken'); 
+
+                  await fetch(`http://localhost:4000/problem/${problem.id}/hint`, {
+                    method: 'GET',
+                    headers: {
+                      'Authorization': `Bearer ${token}`,
+                      'Content-Type': 'application/json',
+                    },
+                  });
+                } catch (error) {
+                  console.error('❌ 힌트 로그 저장 실패:', error);
+                }
+
+                // 2. 모달 열기 (로그 성공 여부와 상관없이 유저에겐 보여줌)
+                setHintOpen(true);
+              }}           
               aria-label="open hint"
             >
               <Image src={hintData.img} alt="hint" width={260} height={320} />

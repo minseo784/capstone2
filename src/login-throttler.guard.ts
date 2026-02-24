@@ -1,4 +1,4 @@
-import { Injectable, ExecutionContext, Inject } from '@nestjs/common';
+import { Injectable, ExecutionContext, Inject, ForbiddenException } from '@nestjs/common';
 import { ThrottlerGuard, ThrottlerStorage, ThrottlerRequest } from '@nestjs/throttler';
 import { Reflector } from '@nestjs/core';
 import { PrismaService } from './prisma/prisma.service';
@@ -17,27 +17,6 @@ export class LoginThrottlerGuard extends ThrottlerGuard {
     super(options, storageService, reflector);
   }
 
-  /*
-  // 🚨 최신 버전의 handleRequest는 인자를 하나(ThrottlerRequest)만 받습니다.
-  protected async handleRequest(requestProps: ThrottlerRequest): Promise<boolean> {
-    const { context, limit, ttl, throttler, getTracker, generateKey } = requestProps;
-    const request = context.switchToHttp().getRequest();
-    const path = request.url;
-
-    // 🔥 [핵심] 인증 관련 경로는 한도를 20으로 강제 하향
-    let currentLimit = limit;
-    if (path.includes('/auth/')) {
-      currentLimit = 20; 
-    }
-
-    // 부모 클래스에 수정된 limit을 넘겨서 처리
-    return super.handleRequest({
-      ...requestProps,
-      limit: currentLimit,
-    });
-  }
-  */
-
   protected async handleRequest(requestProps: ThrottlerRequest): Promise<boolean> {
     const { context, limit } = requestProps;
     const request = context.switchToHttp().getRequest();
@@ -53,29 +32,30 @@ export class LoginThrottlerGuard extends ThrottlerGuard {
     return super.handleRequest({ ...requestProps, limit: currentLimit });
   }
 
+// src/common/guards/login-throttler.guard.ts
+
   protected async throwThrottlingException(context: ExecutionContext): Promise<void> {
     const request = context.switchToHttp().getRequest();
-    const userId = request.body?.userId || null;
-    const ip = request.ip || '::1'; // IP가 없으면 localhost로 간주
+    
+    // 1. 유저 식별자 가져오기 (로그인 중이면 body에서, 인증된 상태면 user에서)
+    const userId = request.user?.id || request.body?.userId || request.body?.email;
     const path = request.url;
 
-    // 🛡️ 관리자/로컬 예외
-    if (userId === 'admin' || ip === '::1') {
-      console.warn(`⚠️ [THROTTLE EXEMPTION] User: ${userId}, IP: ${ip} - Exempted from throttling.`);
-      return; // 예외 처리 후에도 차단이 발생할 수 있으므로, 여기서는 그냥 로그만 남기고 넘어갑니다.
+    if (!userId) {
+      throw new ForbiddenException('과도한 요청입니다.');
     }
 
     let ruleId = 3;
-    let reason = '5분 내 600회 이상 과도한 요청';
+    let reason = '과도한 요청';
 
     if (path.includes('/auth/')) {
       ruleId = 1;
-      reason = '5분 내 20회 이상 인증 시도 (계정 보호)';
+      reason = '인증 시도 초과';
     }
 
-    // DB 기록 실행
-    await this.banService.executeBan(userId, ip, ruleId, reason);
+    // 2. IP 없이 userId만 넘겨서 차단 실행
+    await this.banService.executeBan(userId, ruleId, reason);
 
-    throw new Error(`보안 정책 위반(${reason})으로 인해 24시간 동안 정지되었습니다.`);
+    throw new ForbiddenException(`보안 정책 위반(${reason})으로 인해 정지되었습니다.`);
   }
 }

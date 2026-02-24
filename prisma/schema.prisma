@@ -18,11 +18,13 @@ model User {
   createdAt  DateTime        @default(now())
   updatedAt  DateTime        @updatedAt
   email      String?
+
   banHistory BanHistory[]
   solved     SolvedHistory[]
   submits    SubmitFlag[]
   level      Level           @relation(fields: [levelNum], references: [levelNum])
   events     UserEvent[]
+  hintHistory HintHistory[]
 
   @@unique([provider, providerId])
 }
@@ -50,10 +52,12 @@ model Problem {
   updatedAt   DateTime        @updatedAt
   serverLink  String?
   category    ProblemCategory @default(WEB)
+
   island      Island          @relation(fields: [islandId], references: [id])
   solved      SolvedHistory[]
   submits     SubmitFlag[]
   events      UserEvent[]
+  hintHistory HintHistory[]
 }
 
 model SubmitFlag {
@@ -63,6 +67,7 @@ model SubmitFlag {
   submittedFlag String
   submittedAt   DateTime @default(now())
   isCorrect     Boolean
+
   problem       Problem  @relation(fields: [problemId], references: [id])
   user          User     @relation(fields: [userId], references: [id])
 }
@@ -80,11 +85,11 @@ model SolvedHistory {
 model UserEvent {
   id        BigInt   @id @default(autoincrement())
   userId    String
-  problemId Int
-  type      String
-  payload   String
+  problemId Int?
+  type      UserEventType
   createdAt DateTime @default(now())
-  problem   Problem  @relation(fields: [problemId], references: [id])
+
+  problem   Problem?  @relation(fields: [problemId], references: [id])
   user      User     @relation(fields: [userId], references: [id])
 }
 
@@ -93,7 +98,7 @@ model BanRule {
   name      String
   condition String
   threshold Int
-  enabled   Boolean      @default(true)
+
   history   BanHistory[]
 }
 
@@ -104,14 +109,28 @@ model BanHistory {
   reason     String
   bannedAt   DateTime  @default(now())
   releasedAt DateTime?
+
   rule       BanRule   @relation(fields: [ruleId], references: [id])
   user       User?      @relation(fields: [userId], references: [id])
 }
 
-model BanReport {
-  id        BigInt   @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  summary   String
+// --------------------------
+// AI Tutor Hint History
+// --------------------------
+model HintHistory {
+  id              BigInt   @id @default(autoincrement()) // hintID
+  userId          String
+  problemId       Int
+  lastHintContent String?  @db.Text
+  hintCount       Int      @default(0) // 힌트 요청 횟수
+  usedAt          DateTime @default(now())
+
+  // Relations
+  problem Problem @relation(fields: [problemId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([problemId])
 }
 
 enum AuthProvider {
@@ -123,4 +142,10 @@ enum AuthProvider {
 enum ProblemCategory {
   WEB
   AI
+}
+
+enum UserEventType {
+  VIEW_PROBLEM
+  VIEW_HINT
+  SERVER_ERROR
 }

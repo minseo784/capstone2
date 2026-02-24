@@ -34,9 +34,32 @@ export class AuthService {
         nickname: params.nickname,
       },
     });
-
     if (user.isBanned) {
-      throw new ForbiddenException('차단된 계정입니다. 관리자에게 문의하세요.');
+      // 여기서 에러를 던져야 프론트에서 모달을 띄울 수 있음!
+      throw new ForbiddenException({
+        message: '차단된 계정입니다.',
+        reason: '규정 위반 (반복된 에러 발생)',
+        type: 'BANNED'
+      });
+    }
+
+    // 🔥 [추가] BanHistory 테이블에서 현재 유효한 차단 기록이 있는지 확인
+    const activeBan = await this.prisma.banHistory.findFirst({
+      where: {
+        userId: user.id,
+        releasedAt: { gt: new Date() }, // 현재 시간보다 해제 시간이 미래인 경우
+      },
+      orderBy: { bannedAt: 'desc' }, // 가장 최근 기록 하나만
+    });
+
+    // 1. 자동 차단 기록이 있거나, 2. 수동 차단(isBanned) 상태인 경우
+    if (activeBan || user.isBanned) {
+      throw new ForbiddenException({
+        error: 'BANNED_USER',
+        message: '이용이 제한된 계정입니다.',
+        reason: activeBan?.reason || '관리자에 의한 수동 차단',
+        releasedAt: activeBan?.releasedAt || '영구 차단',
+      });
     }
 
     return user;
@@ -148,5 +171,29 @@ export class AuthService {
         }),
       ),
     );
+  }
+    async getMe(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        nickname: true,
+        levelNum: true,
+        isAdmin: true,
+        provider: true,
+        providerId: true,
+      }
+    });
+
+    if (!user) return null;
+
+    return {
+      userId: user.id,
+      nickname: user.nickname,
+      levelNum: user.levelNum,
+      isAdmin: user.isAdmin,
+      provider: user.provider,
+      providerId: user.providerId,
+    };
   }
 }

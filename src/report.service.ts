@@ -40,12 +40,6 @@ export class ReportService {
       )
       .join('\n\n');
 
-    // 3. DB의 BanReport 테이블에 기록 저장 (주신 스키마 활용)
-    await this.prisma.banReport.create({
-      data: {
-        summary: reportSummary,
-      },
-    });
 
     // 4. 이메일 발송 (관리자 이메일 주소를 입력하세요)
     await this.emailService.sendSecurityAlert('System Admin', reportSummary);

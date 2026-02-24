@@ -17,6 +17,12 @@ import { ReportService } from './report.service';
 import { APP_GUARD } from '@nestjs/core';
 import { LoginThrottlerGuard } from './login-throttler.guard';
 import { BanModule } from './ban/ban.module';
+import { EventsModule } from './events/events.module';
+import { APP_FILTER } from '@nestjs/core';
+import { AllExceptionsFilter } from './common/middleware/filters/all-exceptions.filter';
+import { JwtModule } from '@nestjs/jwt';
+import { BanCheckGuard } from './common/guard/ban-check.guard';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 @Module({
   imports: [
@@ -34,23 +40,39 @@ import { BanModule } from './ban/ban.module';
       limit: 20,   // 👈 로그인 시도는 20번으로 제한!
     }
   ]),
-    AuthModule, PrismaModule, IslandsModule, ProblemModule, ChallengeModule, BanModule
+  JwtModule.register({ secret: process.env.JWT_SECRET }),
+    AuthModule, PrismaModule, IslandsModule, ProblemModule, ChallengeModule, BanModule, EventsModule
   ],
   controllers: [AppController, AdminController],
   providers: [
-    AppService,
-    EmailService,
-    ReportService,
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,  
+    },
+    {
+      provide: APP_GUARD,
+      useClass: BanCheckGuard,
+    },
+
     {
       provide: APP_GUARD,
       useClass: LoginThrottlerGuard,  
     },
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
+    },        
+    AppService,
+    EmailService,
+    ReportService,
+
     // 보안 가드 로직
     {
       provide: APP_INTERCEPTOR,
       useValue: {
         intercept: (context, next) => {
           const req = context.switchToHttp().getRequest();
+          if (req.method === 'GET') return next.handle();
           const body = JSON.stringify(req.body || {}).toLowerCase();
   
           if (['<script', 'select ', 'drop ', 'union '].some(word => body.includes(word))) {

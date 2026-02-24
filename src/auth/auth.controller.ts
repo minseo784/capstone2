@@ -47,11 +47,12 @@ export class AuthController {
       },
     };
   }
-
   @Get('me')
   @UseGuards(LoginThrottlerGuard, JwtAuthGuard)
-  me(@Req() req: any) {
-    return req.user;
+  async me(@Req() req: any) {
+      console.log('req.user:', req.user); // ← 추가
+
+    return this.auth.getMe(req.user.id);
   }
 
   // 닉네임 수정 API
