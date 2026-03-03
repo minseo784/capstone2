@@ -1,0 +1,174 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String          @id @default(cuid())
+  provider   AuthProvider
+  providerId String
+  nickname   String
+  levelNum   Int             @default(1)
+  isAdmin    Boolean         @default(false)
+  isBanned   Boolean         @default(false)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  email      String?
+
+  banHistory BanHistory[]
+  solved     SolvedHistory[]
+  submits    SubmitFlag[]
+  level      Level           @relation(fields: [levelNum], references: [levelNum])
+  events     UserEvent[]
+  hintHistory HintHistory[]
+  logs UserLog[]
+
+  @@unique([provider, providerId])
+}
+
+model Level {
+  levelNum  Int    @id
+  shipImage String
+  users     User[]
+}
+
+model Island {
+  id       Int       @id @default(autoincrement())
+  image    String
+  problems Problem[]
+}
+
+model Problem {
+  id          Int             @id @default(autoincrement())
+  islandId    Int
+  title       String
+  description String
+  hint        String
+  correctFlag String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  serverLink  String?
+  category    ProblemCategory @default(WEB)
+  metadata      Json?
+
+
+  island      Island          @relation(fields: [islandId], references: [id])
+  solved      SolvedHistory[]
+  submits     SubmitFlag[]
+  events      UserEvent[]
+  hintHistory HintHistory[]
+  logs UserLog[]
+}
+
+model SubmitFlag {
+  id            BigInt   @id @default(autoincrement())
+  userId        String
+  problemId     Int
+  submittedFlag String
+  submittedAt   DateTime @default(now())
+  isCorrect     Boolean
+
+  problem       Problem  @relation(fields: [problemId], references: [id])
+  user          User     @relation(fields: [userId], references: [id])
+}
+
+model SolvedHistory {
+  userId    String
+  problemId Int
+  solvedAt  DateTime @default(now())
+  problem   Problem  @relation(fields: [problemId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@id([userId, problemId])
+}
+
+model UserEvent {
+  id        BigInt   @id @default(autoincrement())
+  userId    String
+  problemId Int?
+  type      UserEventType
+  createdAt DateTime @default(now())
+
+  problem   Problem?  @relation(fields: [problemId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model BanRule {
+  id        BigInt       @id @default(autoincrement())
+  name      String
+  condition String
+  threshold Int
+
+  history   BanHistory[]
+}
+
+model BanHistory {
+  id         BigInt    @id @default(autoincrement())
+  userId     String?
+  ruleId     BigInt
+  reason     String
+  bannedAt   DateTime  @default(now())
+  releasedAt DateTime?
+
+  rule       BanRule   @relation(fields: [ruleId], references: [id])
+  user       User?      @relation(fields: [userId], references: [id])
+}
+
+// --------------------------
+// AI Tutor Hint History
+// --------------------------
+model HintHistory {
+  id              BigInt   @id @default(autoincrement()) // hintID
+  userId          String
+  problemId       Int
+  lastHintContent String?  @db.Text
+  hintCount       Int      @default(0) // 힌트 요청 횟수
+  usedAt          DateTime @default(now())
+
+  // Relations
+  problem Problem @relation(fields: [problemId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([problemId])
+}
+
+enum AuthProvider {
+  KAKAO
+  GOOGLE
+  NAVER
+}
+
+enum ProblemCategory {
+  WEB
+  AI
+}
+
+enum UserEventType {
+  VIEW_PROBLEM
+  VIEW_HINT
+  SERVER_ERROR
+}
+
+// --------------------------
+// Nginx Request & AI Tutor Logs
+// --------------------------
+model UserLog {
+  id        BigInt   @id @default(autoincrement())
+  userId    String
+  problemId Int
+  header    Json     // Nginx에서 넘어온 HTTP 헤더 정보 (PostgreSQL의 JsonB 권장)
+  body      Json     // 요청 본문 데이터
+  createdAt DateTime @default(now())
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [id])
+  problem Problem @relation(fields: [problemId], references: [id])
+
+  @@index([userId])
+  @@index([problemId])
+}

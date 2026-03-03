@@ -1,0 +1,175 @@
+.pageRoot {
+  position: relative;
+  width: 100vw;
+  min-height: 100vh;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background-color: #005c9a;
+  background-image: url('/assets/backgrounds/main-map.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 80% auto;
+}
+
+.topBar {
+  position: absolute;
+  top: 3vh;
+  left: 0;
+  right: 0;
+  height: 80px;
+
+  pointer-events: none;
+  z-index: 50;
+}
+
+.topBarButton {
+  position: absolute;
+  top: 0;
+
+  pointer-events: auto;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: block;
+}
+/* 버튼 자체 스타일 */
+.challengeButton {
+  background: transparent; /* 배경을 투명하게 설정 */
+  border: none; /* 테두리 제거 */
+  padding: 0; /* 안쪽 여백 제거 */
+  cursor: pointer;
+  outline: none;
+  display: block; /* 이미지 정렬을 위해 블록화 */
+  margin-top: 20px; /* 레벨 텍스트와의 간격 */
+  transition: transform 0.1s ease;
+}
+.homeButton {
+  right: calc(10vw + 6px);
+}
+
+.logoutButton {
+  left: calc(10vw + 6px);
+}
+
+.card {
+  position: relative;
+  z-index: 10;
+
+  width: min(780px, 92vw);
+  height: min(460px, 72vh);
+
+  background-color: #0c2237;
+  border: 8px solid #b06320;
+  border-radius: 32px;
+  overflow: hidden;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.5);
+
+  display: flex;
+}
+
+.innerRow {
+  width: 100%;
+  height: 100%;
+  display: flex;
+}
+
+.leftPanel {
+  width: 35%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.divider {
+  width: 0;
+  border-left: 4px dotted #b06320;
+}
+
+.avatarWrapper {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background-color: #f8f4e8;
+  border: 5px solid #b06320;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shipName {
+  margin-top: 20px;
+  font-size: 28px;
+  font-weight: 700;
+  color: #ff9f34;
+  text-align: center;
+}
+
+.levelText {
+  margin-top: 6px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #ff9f34;
+  text-align: center;
+}
+
+.rightPanel {
+  width: 65%;
+  padding: 32px 44px 28px;
+  box-sizing: border-box;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.field {
+  margin-bottom: 18px;
+}
+
+.fieldLabel {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ff9f34;
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+}
+
+.input {
+  width: 100%;
+  height: 36px;
+  box-sizing: border-box;
+
+  padding: 0 10px;
+  border-radius: 4px;
+  border: 1px solid #888;
+  background-color: #f5f5f5;
+
+  font-size: 14px;
+  outline: none;
+}
+
+.inputReadOnly {
+  background-color: #e6e6e6;
+  text-align: center;
+}
+
+.buttonsRow {
+  margin-top: auto;
+  padding-top: 18px;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.iconButton {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}

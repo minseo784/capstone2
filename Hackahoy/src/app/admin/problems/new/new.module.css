@@ -1,0 +1,233 @@
+/* src/app/admin/problems/new/new.module.css */
+
+.stage {
+  position: absolute;
+  inset: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding-top: 40px;
+  box-sizing: border-box;
+}
+
+.board {
+  width: min(800px, 92vw);
+  /* 보드 자체의 최대 높이를 화면의 85%로 제한하여 화면 이탈 방지 */
+  max-height: 85vh; 
+  padding: 24px 28px;
+  position: relative;
+
+  background: rgba(255, 255, 255, 0.45);
+  border: 3px solid rgba(80, 50, 30, 0.8);
+  border-radius: 12px;
+
+  box-shadow:
+    0 0 0 3px rgba(40, 25, 15, 0.2),
+    0 16px 40px rgba(0, 0, 0, 0.45);
+
+  font-family: 'NeoDunggeunmo Pro', 'NeoDunggeunmo', monospace;
+  
+  /* 내부 요소(Title, Form, Footer)를 세로로 정렬 */
+  display: flex;
+  flex-direction: column;
+}
+
+.closeBtn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+
+  background: none;
+  border: none;
+  padding: 0;
+
+  font-size: 24px;
+  font-weight: 600;
+  color: #5a2e0f;
+
+  cursor: pointer;
+  line-height: 1;
+  z-index: 10;
+}
+
+.closeBtn:active {
+  transform: translateY(0px);
+  filter: brightness(0.98);
+}
+
+.title {
+  margin: 0 0 14px 0;
+  text-align: center;
+  font-size: 30px;
+  font-weight: 900;
+  color: #f4b452;
+  text-shadow:
+    -3px -3px #3a210f,
+    3px -3px #3a210f,
+    -3px 3px #3a210f,
+    3px 3px #3a210f,
+    0 4px rgba(0, 0, 0, 0.4);
+  /* 타이틀은 고정 */
+  flex-shrink: 0;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  
+  /* 입력창이 많아질 경우 내부에서만 스크롤 발생 */
+  overflow-y: auto;
+  padding-right: 10px;
+  flex: 1;
+}
+
+/* 도트 스타일 프로젝트에 어울리는 커스텀 스크롤바 */
+.form::-webkit-scrollbar {
+  width: 8px;
+}
+.form::-webkit-scrollbar-thumb {
+  background: #5a382a;
+  border-radius: 4px;
+}
+.form::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label {
+  font-size: 16px;
+  font-weight: 900;
+  color: #3a210f;
+}
+
+.input {
+  height: 40px;
+  padding: 0 14px;
+
+  border-radius: 8px;
+  border: 3px solid rgba(60, 40, 22, 0.85);
+  background: rgba(255, 255, 255, 0.75);
+
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 900;
+  color: #1a0f0a;
+
+  outline: none;
+  /* 스크롤 시 입력창 높이가 줄어들지 않도록 설정 */
+  flex-shrink: 0;
+}
+
+.textarea {
+  min-height: 100px;
+  height: 120px;
+  resize: none;
+  padding: 12px 14px;
+
+  border-radius: 8px;
+  border: 3px solid rgba(60, 40, 22, 0.85);
+  background: rgba(255, 255, 255, 0.75);
+
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 900;
+  color: #1a0f0a;
+  line-height: 1.4;
+
+  outline: none;
+  flex-shrink: 0;
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: rgba(26, 15, 10, 0.35);
+  font-weight: 900;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 15px;
+  padding-bottom: 5px;
+  /* 하단 버튼 영역 고정 */
+  flex-shrink: 0;
+}
+
+.imgBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  line-height: 0;
+  image-rendering: pixelated;
+  transition:
+    transform 0.12s ease,
+    filter 0.12s ease;
+}
+
+.imgBtn:active {
+  transform: translateY(1px);
+  filter: brightness(0.95);
+}
+
+@media (max-width: 980px) {
+  .row2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.categoryRow {
+  display: flex;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.catBtn {
+  flex: 1;
+  padding: 8px;
+  border: 2px solid #5a382a;
+  background-color: #fdf6e3;
+  color: #5a382a;
+  font-family: inherit;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.catBtnActive {
+  background-color: #5a382a;
+  color: #ffffff;
+}
+
+.catBtn:hover {
+  filter: brightness(0.95);
+}
+
+.errorBanner {
+  background-color: #ffeaea;
+  border: 1px solid #ff4d4d;
+  color: #ff4d4d;
+  padding: 6px;
+  font-size: 12px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  text-align: center;
+  font-weight: bold;
+}
